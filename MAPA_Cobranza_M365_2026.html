@@ -782,24 +782,51 @@ async function resolveIds(){
   return GIDS;
 }
 
+var COLMAPS = {};
+function normCol(s){ return (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[\s_-]+/g, ''); }
+async function getColMap(listId){
+  if (COLMAPS[listId]) return COLMAPS[listId];
+  var ids = await resolveIds();
+  var cols = await gfetch('/sites/' + ids.site + '/lists/' + listId + '/columns?$select=name,displayName&$top=300');
+  var m = {};
+  cols.value.forEach(function(c){ if (!m[normCol(c.displayName)]) m[normCol(c.displayName)] = c.name; if (!m[normCol(c.name)]) m[normCol(c.name)] = c.name; });
+  COLMAPS[listId] = m; return m;
+}
+async function mapFields(listId, fields, requeridos){
+  var m = await getColMap(listId); var out = {}; var faltan = [];
+  Object.keys(fields).forEach(function(k){
+    var i = m[normCol(k)];
+    if (i) out[i] = fields[k];
+    else if (requeridos && requeridos.indexOf(k) >= 0) faltan.push(k);
+  });
+  if (faltan.length) throw new Error('Faltan columnas en la lista: ' + faltan.join(', ') + '. Créalas y reintenta.');
+  return out;
+}
+function gv(f, m, k){ var i = m[normCol(k)]; return i ? f[i] : undefined; }
+
 async function syncInit(){
   setSyncMsg('☁ Sincronizando…');
   var ids = await resolveIds();
+  var mCfg = await getColMap(ids.config);
   var cfg = await gfetch('/sites/' + ids.site + '/lists/' + ids.config + '/items?expand=fields&$top=999');
   var n = 0;
   cfg.value.forEach(function(it){
-    var f = it.fields; if (f.Proceso !== CONFIG.proceso) return;
+    var f = it.fields; if (gv(f, mCfg, 'Proceso') !== CONFIG.proceso) return;
     var k = kpiById(f.Title); if (!k) return;
-    if (f.Meta != null && f.Meta !== '') { k.meta = Number(f.Meta); n++; }
+    var meta = gv(f, mCfg, 'Meta');
+    if (meta != null && meta !== '') { k.meta = Number(meta); n++; }
   });
   state.configLoaded = n > 0;
+  var mCap = await getColMap(ids.capturas);
   var cap = await gfetch('/sites/' + ids.site + '/lists/' + ids.capturas + '/items?expand=fields&$top=2000');
   cap.value.forEach(function(it){
-    var f = it.fields; if (f.Proceso !== CONFIG.proceso || !f.Periodo || !f.Title) return;
-    var extra = {}; try { extra = f.Campos ? JSON.parse(f.Campos) : {}; } catch(e){}
-    if (!state.data[f.Periodo]) state.data[f.Periodo] = {};
-    state.data[f.Periodo][f.Title] = {
-      valores: extra.valores || {}, justificacion: f.Comentario || '',
+    var f = it.fields;
+    var proc = gv(f, mCap, 'Proceso'), per = gv(f, mCap, 'Periodo');
+    if (proc !== CONFIG.proceso || !per || !f.Title) return;
+    var raw = gv(f, mCap, 'Campos'); var extra = {}; try { extra = raw ? JSON.parse(raw) : {}; } catch(e){}
+    if (!state.data[per]) state.data[per] = {};
+    state.data[per][f.Title] = {
+      valores: extra.valores || {}, justificacion: gv(f, mCap, 'Comentario') || '',
       timestamp: extra.timestamp || it.createdDateTime, entregaTardia: !!extra.entregaTardia, _itemId: it.id
     };
   });
@@ -826,6 +853,7 @@ async function pushOne(rec){
     Campos: JSON.stringify({ valores: entry.valores, entregaTardia: !!entry.entregaTardia, timestamp: entry.timestamp })
   };
   if (fields.Valor == null) delete fields.Valor;
+  fields = await mapFields(ids.capturas, fields, ['Title', 'Proceso', 'Periodo', 'Campos']);
   if (entry._itemId) {
     await gfetch('/sites/' + ids.site + '/lists/' + ids.capturas + '/items/' + entry._itemId + '/fields', { method: 'PATCH', body: JSON.stringify(fields) });
   } else {
@@ -877,6 +905,7 @@ async function adminInitConfig(){
       };
       if (fields.Meta == null) delete fields.Meta;
       if (!fields.Agregacion) delete fields.Agregacion;
+      fields = await mapFields(ids.config, fields, ['Title', 'Proceso', 'Nombre']);
       adminMsg('Subiendo ' + (i + 1) + '/' + kpis.length + ': ' + k.id + '…');
       await gfetch('/sites/' + ids.site + '/lists/' + ids.config + '/items', { method: 'POST', body: JSON.stringify({ fields: fields }) });
       n++;
