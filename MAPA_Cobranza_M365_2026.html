@@ -499,6 +499,7 @@ function handleSaveCaptura(){
     Object.keys(nuevos).forEach(function(kid){
       var ant = state.data[periodo][kid] || null;
       state.data[periodo][kid] = { valores:nuevos[kid], justificacion:justif, timestamp:new Date().toISOString(), entregaTardia:tardia };
+      if (ant && ant._itemId) state.data[periodo][kid]._itemId = ant._itemId;
       logBitacora({ accion:ant?'edit':'create', periodo:periodo, kpi:kid, anterior:ant?ant.valores:null, nuevo:nuevos[kid], justificacion:justif, entregaTardia:tardia });
     });
     saveState();
@@ -843,6 +844,13 @@ function setPending(q){ localStorage.setItem(CONFIG.storageKey + '_pend', JSON.s
 async function pushOne(rec){
   var ids = await resolveIds();
   var entry = (state.data[rec.periodo] || {})[rec.kpi]; if (!entry) return;
+  if (!entry._itemId) {
+    var mCap0 = await getColMap(ids.capturas);
+    var ex = await gfetch('/sites/' + ids.site + '/lists/' + ids.capturas + '/items?expand=fields&$top=2000');
+    var hit = ex.value.find(function(it){ var f = it.fields;
+      return f.Title === rec.kpi && gv(f, mCap0, 'Periodo') === rec.periodo && gv(f, mCap0, 'Proceso') === CONFIG.proceso; });
+    if (hit) entry._itemId = hit.id;
+  }
   var kpi = kpiById(rec.kpi); var val = null;
   try { if (kpi && kpi.calcular) val = kpi.calcular(entry.valores); } catch(e){}
   if (val == null && entry.valores && entry.valores.valor != null) val = entry.valores.valor;
