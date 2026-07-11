@@ -773,7 +773,10 @@ async function resolveIds(){
   var c = sessionStorage.getItem('ga_gids_v2'); if (c) { GIDS = JSON.parse(c); return GIDS; }
   var site = await gfetch('/sites/' + M365.siteHost + ':' + M365.sitePath);
   var lists = await gfetch('/sites/' + site.id + '/lists?$select=id,displayName&$top=200');
-  function f(n){ var l = lists.value.find(function(x){ return x.displayName === n; }); if (!l) throw new Error('Lista no encontrada: ' + n); return l.id; }
+  function f(n){ var t = n.trim().toLowerCase();
+    var l = lists.value.find(function(x){ return (x.displayName||'').trim().toLowerCase() === t; });
+    if (!l) throw new Error('Lista no encontrada: ' + n + '. Listas visibles en el sitio: ' + lists.value.map(function(x){ return x.displayName; }).join(' | '));
+    return l.id; }
   GIDS = { site: site.id, capturas: f(M365.listaCapturas), config: f(M365.listaConfig) };
   sessionStorage.setItem('ga_gids_v2', JSON.stringify(GIDS));
   return GIDS;
