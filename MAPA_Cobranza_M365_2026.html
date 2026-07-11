@@ -620,6 +620,14 @@ document.addEventListener('DOMContentLoaded', function(){
   document.getElementById('btn-import-hist').onclick = function(){ document.getElementById('file-hist').click(); };
   document.getElementById('file-config').addEventListener('change', adminInitConfig);
   document.getElementById('file-hist').addEventListener('change', adminImportHist);
+  document.getElementById('btn-reset-local').onclick = function(){
+    if (!confirm('¿Borrar los datos locales de este navegador? Las capturas ya sincronizadas en el servidor NO se pierden.')) return;
+    localStorage.removeItem(CONFIG.storageKey + '_data');
+    localStorage.removeItem(CONFIG.storageKey + '_log');
+    localStorage.removeItem(CONFIG.storageKey + '_pend');
+    sessionStorage.removeItem('ga_gids_v2');
+    location.reload();
+  };
   document.querySelectorAll('.tab-btn').forEach(function(b){
     b.onclick = (function(x){ return function(){ switchTab(x.dataset.tab); }; })(b);
   });
@@ -636,6 +644,7 @@ document.addEventListener('DOMContentLoaded', function(){
     <div style="display:flex;flex-direction:column;gap:10px;margin:14px 0;">
       <button class="btn btn-primary" id="btn-init-config">1 · Inicializar Config_KPI (subir spec JSON)</button>
       <button class="btn btn-primary" id="btn-import-hist">2 · Importar histórico (JSON exportado del MAPA anterior)</button>
+      <button class="btn btn-secondary" id="btn-reset-local">3 · Borrar datos locales de este navegador (el servidor no se toca)</button>
     </div>
     <div id="admin-status" style="font-size:12px;color:var(--muted);min-height:18px;"></div>
     <input type="file" id="file-config" accept=".json" style="display:none">
@@ -863,8 +872,15 @@ async function pushOne(rec){
   if (fields.Valor == null) delete fields.Valor;
   fields = await mapFields(ids.capturas, fields, ['Title', 'Proceso', 'Periodo', 'Campos']);
   if (entry._itemId) {
-    await gfetch('/sites/' + ids.site + '/lists/' + ids.capturas + '/items/' + entry._itemId + '/fields', { method: 'PATCH', body: JSON.stringify(fields) });
-  } else {
+    try {
+      await gfetch('/sites/' + ids.site + '/lists/' + ids.capturas + '/items/' + entry._itemId + '/fields', { method: 'PATCH', body: JSON.stringify(fields) });
+    } catch(e) {
+      var msg = (e.message || '') + '';
+      if (msg.indexOf('404') >= 0 || msg.indexOf('itemNotFound') >= 0) { entry._itemId = null; }
+      else { throw e; }
+    }
+  }
+  if (!entry._itemId) {
     var r = await gfetch('/sites/' + ids.site + '/lists/' + ids.capturas + '/items', { method: 'POST', body: JSON.stringify({ fields: fields }) });
     entry._itemId = r.id;
   }
