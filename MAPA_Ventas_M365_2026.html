@@ -186,7 +186,7 @@ footer strong{color:var(--azul);}
 <script>
 const CONFIG = { proceso:'Ventas', procesoCode:'ventas', eje:'Ventas', responsable:'MAJR', responsableNombre:'Miguel Ángel Juárez Rivera', ventanaInicio:1, ventanaFin:7, storageKey:'ga_proc_ventas' };
 
-const KPIS = [{id:'volumen_ventas_global', nombre:'Volumen de Ventas Global', nivel:'estrategico', cadencia:'trimestral', formula:'Volumen de ventas acumulada / Volumen de ventas objetivo ($11.5 MDP trim.)', meta:null, unidad:'$', activo:true, derivaDe:['volumen_ventas'], agregacion:'suma', campos:[{id:'valor', label:'Volumen de ventas global del trimestre'}], calcular:function(v){return (v.valor==null||v.valor==='') ? null : Number(v.valor);}, semaforo:function(val,m){return val >= m ? 'v' : (val >= m*0.92 ? 'a' : 'r');}}, {id:'volumen_ventas', nombre:'Volumen de Ventas', nivel:'tactico', cadencia:'mensual', formula:'Volumen de ventas acumulada del mes / Objetivo mensual ($4.05 MDP)', meta:null, unidad:'$', activo:true, derivaDe:['ventas_empresa'], agregacion:'suma', campos:[{id:'valor', label:'Volumen de ventas del mes'}], calcular:function(v){return (v.valor==null||v.valor==='') ? null : Number(v.valor);}, semaforo:function(val,m){return val >= m ? 'v' : (val >= m*0.9 ? 'a' : 'r');}}, {id:'reventa_tactico', nombre:'Reventa', nivel:'tactico', cadencia:'mensual', formula:'Monto de reventa acumulada del mes (empresa)', meta:null, unidad:'$', activo:true, campos:[{id:'valor', label:'Reventa del mes (empresa)'}], calcular:function(v){return (v.valor==null||v.valor==='') ? null : Number(v.valor);}, semaforo:function(val,m){return val >= m ? 'v' : (val >= m*0.9 ? 'a' : 'r');}}, {id:'ventas_empresa', nombre:'Volumen de Ventas Empresa', nivel:'operativo', cadencia:'semanal', formula:'Volumen de ventas de la semana (global empresa) / Objetivo semanal ($1,080,000)', meta:null, unidad:'$', activo:true, campos:[{id:'valor', label:'Volumen de ventas de la semana (global empresa)'}], calcular:function(v){return (v.valor==null||v.valor==='') ? null : Number(v.valor);}, semaforo:function(val,m){return val >= m ? 'v' : (val >= m*0.85 ? 'a' : 'r');}}, {id:'ventas_promotor', nombre:'Ventas por Equipo', nivel:'operativo', cadencia:'semanal', formula:'Monto de ventas por equipo / Objetivo por equipo ($120,000 sem.) · Desglose por equipo en SAGAN', meta:null, metaRef:120000, unidad:'$', activo:true, informativo:true, campos:[{id:'valor', label:'Ventas por equipo (referencia)'}], calcular:function(v){return (v.valor==null||v.valor==='') ? null : Number(v.valor);}, semaforo:function(val,m){return val >= m ? 'v' : (val >= m*0.85 ? 'a' : 'r');}}, {id:'reventa_promotor', nombre:'Reventa por Equipo', nivel:'operativo', cadencia:'semanal', formula:'Monto de reventa por equipo / Objetivo por equipo ($60,000 sem.) · Desglose por equipo en SAGAN', meta:null, metaRef:60000, unidad:'$', activo:true, informativo:true, campos:[{id:'valor', label:'Reventa por equipo (referencia)'}], calcular:function(v){return (v.valor==null||v.valor==='') ? null : Number(v.valor);}, semaforo:function(val,m){return val >= m ? 'v' : (val >= m*0.85 ? 'a' : 'r');}}, {id:'eficacia_logro_meta', nombre:'Eficacia en Logro de Meta', nivel:'operativo', cadencia:'trimestral', formula:'Semanas con meta de ventas lograda / Total de semanas del trimestre', meta:null, unidad:'%', activo:true, campos:[{id:'semanas_logradas', label:'Semanas con meta de ventas lograda'}, {id:'semanas_totales', label:'Total de semanas del trimestre'}], calcular:function(v){return v.semanas_totales > 0 ? (v.semanas_logradas / v.semanas_totales * 100) : null;}, semaforo:function(val,m){return val >= m ? 'v' : (val >= m*0.85 ? 'a' : 'r');}}];
+const KPIS = [{id:'volumen_ventas_global', nombre:'Volumen de Ventas Global', nivel:'estrategico', cadencia:'trimestral', formula:'Volumen de ventas acumulada / Volumen de ventas objetivo ($11.5 MDP trim.)', meta:null, unidad:'$', activo:true, derivaDe:['volumen_ventas'], agregacion:'suma', campos:[{id:'valor', label:'Volumen de ventas global del trimestre'}], calcular:function(v){return (v.valor==null||v.valor==='') ? null : Number(v.valor);}, semaforo:function(val,m){return val >= m ? 'v' : (val >= m*0.92 ? 'a' : 'r');}}, {id:'volumen_ventas', nombre:'Volumen de Ventas', nivel:'tactico', cadencia:'mensual', formula:'Volumen de ventas acumulada del mes / Objetivo mensual ($4.05 MDP)', meta:null, unidad:'$', activo:true, derivaDe:['ventas_empresa'], agregacion:'suma', campos:[{id:'valor', label:'Volumen de ventas del mes'}], calcular:function(v){return (v.valor==null||v.valor==='') ? null : Number(v.valor);}, semaforo:function(val,m){return val >= m ? 'v' : (val >= m*0.9 ? 'a' : 'r');}}, {id:'reventa_tactico', nombre:'Reventa', nivel:'tactico', cadencia:'mensual', formula:'Monto de reventa acumulada del mes (empresa)', meta:null, unidad:'$', activo:true, campos:[{id:'valor', label:'Reventa del mes (empresa)'}], calcular:function(v){return (v.valor==null||v.valor==='') ? null : Number(v.valor);}, semaforo:function(val,m){return val >= m ? 'v' : (val >= m*0.9 ? 'a' : 'r');}}, {id:'ventas_empresa', nombre:'Venta Colectiva', nivel:'operativo', cadencia:'semanal', formula:'Volumen de ventas de la semana ISO (global empresa) · Meta $1,080,000/sem · suma mensual → Volumen de Ventas', meta:null, unidad:'$', activo:true, campos:[{id:'valor', label:'Venta colectiva de la semana (global empresa)'}], calcular:function(v){return (v.valor==null||v.valor==='') ? null : Number(v.valor);}, semaforo:function(val,m){return val >= m ? 'v' : (val >= m*0.85 ? 'a' : 'r');}}, {id:'ventas_promotor', nombre:'Ventas por Equipo', nivel:'operativo', cadencia:'semanal', formula:'Monto de ventas por equipo / Objetivo por equipo ($120,000 sem.) · Desglose por equipo en SAGAN', meta:null, metaRef:120000, unidad:'$', activo:true, informativo:true, campos:[{id:'valor', label:'Ventas por equipo (referencia)'}], calcular:function(v){return (v.valor==null||v.valor==='') ? null : Number(v.valor);}, semaforo:function(val,m){return val >= m ? 'v' : (val >= m*0.85 ? 'a' : 'r');}}, {id:'reventa_promotor', nombre:'Reventa por Equipo', nivel:'operativo', cadencia:'semanal', formula:'Monto de reventa por equipo / Objetivo por equipo ($60,000 sem.) · Desglose por equipo en SAGAN', meta:null, metaRef:60000, unidad:'$', activo:true, informativo:true, campos:[{id:'valor', label:'Reventa por equipo (referencia)'}], calcular:function(v){return (v.valor==null||v.valor==='') ? null : Number(v.valor);}, semaforo:function(val,m){return val >= m ? 'v' : (val >= m*0.85 ? 'a' : 'r');}}, {id:'eficacia_logro_meta', nombre:'Eficacia en Logro de Meta', nivel:'operativo', cadencia:'trimestral', formula:'Semanas con meta de ventas lograda / Total de semanas del trimestre', meta:null, unidad:'%', activo:true, campos:[{id:'semanas_logradas', label:'Semanas con meta de ventas lograda'}, {id:'semanas_totales', label:'Total de semanas del trimestre'}], calcular:function(v){return v.semanas_totales > 0 ? (v.semanas_logradas / v.semanas_totales * 100) : null;}, semaforo:function(val,m){return val >= m ? 'v' : (val >= m*0.85 ? 'a' : 'r');}}];
 
 function fmt1(v){ return (v == null) ? '—' : (Math.round(v*10)/10).toFixed(1); }
 /* Formateo por unidad: '$' -> moneda ($1,080,000 sin decimales, separador de miles); resto -> 1 decimal + unidad */
@@ -195,6 +195,49 @@ function fmtVal(v, unidad){
   var n = Number(v); if (isNaN(n)) return '—';
   if (unidad === '$') return '$' + Math.round(n).toLocaleString('en-US');
   return (Math.round(n*10)/10).toFixed(1) + (unidad ? ' ' + unidad : '');
+}
+
+/* ===== Semana ISO-8601 (para KPIs de cadencia 'semanal', p.ej. VEN-060 Venta Colectiva) =====
+   Una semana pertenece al mes de su JUEVES (convención ISO), lo que particiona las semanas
+   en meses sin traslape. La captura semanal se guarda con llave AAAA-Www. */
+function _pad2(n){ return n<10 ? '0'+n : ''+n; }
+function isoWeekOf(date){
+  var d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  var dayNum = (d.getUTCDay() + 6) % 7;
+  d.setUTCDate(d.getUTCDate() - dayNum + 3); /* jueves de esa semana */
+  var firstThu = new Date(Date.UTC(d.getUTCFullYear(), 0, 4));
+  var fdn = (firstThu.getUTCDay() + 6) % 7;
+  firstThu.setUTCDate(firstThu.getUTCDate() - fdn + 3);
+  var week = 1 + Math.round((d - firstThu) / (7*24*3600*1000));
+  return { year:d.getUTCFullYear(), week:week };
+}
+function weekKey(y, w){ return y + '-W' + _pad2(w); }
+function isoWeekKeyOf(date){ var i = isoWeekOf(date); return weekKey(i.year, i.week); }
+/* Semanas ISO cuyo jueves cae en (year, month1=1..12) — típicamente 4 o 5 */
+function isoWeeksOfMonth(year, month1){
+  var keys = [], end = new Date(Date.UTC(year, month1, 1));
+  for (var dt = new Date(Date.UTC(year, month1-1, 1)); dt < end; dt.setUTCDate(dt.getUTCDate()+1)){
+    if (((dt.getUTCDay()+6)%7) === 3){ keys.push(isoWeekKeyOf(dt)); } /* jueves */
+  }
+  return keys;
+}
+/* Lunes..Domingo de una llave AAAA-Www, como texto corto "6–12 ene" */
+function semanaRango(wk){
+  var y = parseInt(wk.slice(0,4),10), w = parseInt(wk.slice(6),10);
+  var jan4 = new Date(Date.UTC(y,0,4));
+  var fdn = (jan4.getUTCDay()+6)%7;
+  var week1Mon = new Date(jan4); week1Mon.setUTCDate(jan4.getUTCDate() - fdn);
+  var mon = new Date(week1Mon); mon.setUTCDate(week1Mon.getUTCDate() + (w-1)*7);
+  var sun = new Date(mon); sun.setUTCDate(mon.getUTCDate()+6);
+  var mm = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  var a = mon.getUTCDate()+' '+mm[mon.getUTCMonth()], b = sun.getUTCDate()+' '+mm[sun.getUTCMonth()];
+  return a+'–'+b;
+}
+/* Últimas n semanas ISO hasta hoy (para la gráfica de tendencia semanal) */
+function recentIsoWeeks(n){
+  var out = [], d = new Date();
+  for (var i=0;i<n;i++){ out.unshift(isoWeekKeyOf(d)); d.setDate(d.getDate()-7); }
+  return out;
 }
 
 let state = { authenticated:false, data:{}, bitacora:[], currentPeriod:null, windowStatus:null, charts:{} };
@@ -351,9 +394,13 @@ function renderYoYChart(kpi, box){
 function renderTrendChart(kpi){
   if (typeof Chart === 'undefined') return;
   var box = document.getElementById('trend-'+kpi.id); if (!box) return;
-  if (state.chartView === 'yoy'){ renderYoYChart(kpi, box); return; }
+  if (state.chartView === 'yoy' && kpi.cadencia !== 'semanal'){ renderYoYChart(kpi, box); return; }
   var hoy = new Date(); var serie = [];
-  if (kpi.cadencia === 'trimestral') {
+  if (kpi.cadencia === 'semanal') {
+    recentIsoWeeks(12).forEach(function(wk){
+      serie.push({label:'W'+wk.slice(6), value: valorKpiEnPeriodo(kpi, wk)});
+    });
+  } else if (kpi.cadencia === 'trimestral') {
     for (var i = 7; i >= 0; i--) {
       var q = new Date(hoy.getFullYear(), hoy.getMonth() - i*3, 1);
       var qLabel = 'Q' + (Math.floor(q.getMonth()/3)+1) + ' ' + (''+q.getFullYear()).slice(-2);
@@ -411,6 +458,7 @@ function subPeriodos(derivCad, srcCad, periodKey){
   var y = parseInt(periodKey.slice(0,4),10), m = parseInt(periodKey.slice(5,7),10);
   function k(mm){ return y+'-'+(mm<10?'0'+mm:''+mm); }
   if (derivCad==='trimestral' && srcCad==='mensual'){ var qs=m-((m-1)%3); return [k(qs),k(qs+1),k(qs+2)]; }
+  if (derivCad==='mensual' && srcCad==='semanal'){ return isoWeeksOfMonth(y, m); }
   if (derivCad==='anual' && srcCad==='mensual'){ var a=[]; for(var i=1;i<=12;i++) a.push(k(i)); return a; }
   return [periodKey]; /* misma cadencia (p.ej. táctico mensual <- operativo mensual) */
 }
@@ -520,6 +568,22 @@ function renderCaptura(){
         '<div class="cap-na">ℹ️ KPI <strong>informativo</strong> ('+fmtVal(kpi.metaRef, kpi.unidad)+' de referencia) — <strong>no se captura aquí</strong>. El desglose por equipo se registra en SAGAN; el BSC toma el total semanal de Venta Colectiva.</div></div>';
       return;
     }
+    if (kpi.cadencia === 'semanal'){
+      var wy = parseInt(periodo.slice(0,4),10), wm = parseInt(periodo.slice(5,7),10);
+      var semanas = isoWeeksOfMonth(wy, wm), campo = kpi.campos[0];
+      var subs = semanas.map(function(wk){
+        var kd = state.data[wk] && state.data[wk][kpi.id] && state.data[wk][kpi.id].valores;
+        var wv = kd ? kd[campo.id] : '';
+        return '<div class="cap-field"><label>'+wk+' <span style="color:var(--muted);font-weight:400;">('+semanaRango(wk)+')</span></label>' +
+          '<input type="number" step="any" id="capw-'+kpi.id+'-'+wk+'" value="'+(wv != null ? wv : '')+'"></div>';
+      }).join('');
+      html += '<div class="cap-kpi"><h4>'+kpi.nombre+' · <span style="font-weight:400;color:var(--muted);font-size:11px;">semanal ISO · '+semanas.length+' semanas de '+periodo+'</span></h4>' +
+        '<div class="formula">'+kpi.formula+'</div>' +
+        '<div class="cap-fields">'+subs+'</div>' +
+        '<div class="cap-result" id="result-'+kpi.id+'"></div>' +
+        '</div>';
+      return;
+    }
     if (!aplicaCadencia(kpi.cadencia, periodo)){
       html += '<div class="cap-kpi"><h4>'+kpi.nombre+' · <span style="font-weight:400;color:var(--muted);font-size:11px;">'+kpi.cadencia+'</span></h4>' +
         '<div class="cap-na">Cadencia '+kpi.cadencia+'. No aplica captura en '+periodo+'.</div></div>';
@@ -560,7 +624,16 @@ function readCalcValues(kpi){
   return v;
 }
 function updateCalcResult(kpi){
-  if (esDerivado(kpi)) return;
+  if (esDerivado(kpi) || kpi.informativo) return;
+  if (kpi.cadencia === 'semanal'){
+    var el = document.getElementById('result-'+kpi.id); if (!el) return;
+    var wy = parseInt(state.currentPeriod.slice(0,4),10), wm = parseInt(state.currentPeriod.slice(5,7),10);
+    var semanas = isoWeeksOfMonth(wy, wm), sum = 0, n = 0;
+    semanas.forEach(function(wk){ var inp = document.getElementById('capw-'+kpi.id+'-'+wk);
+      if (inp && inp.value !== ''){ sum += parseFloat(inp.value); n++; } });
+    el.innerHTML = n ? ('Suma del mes ('+n+'/'+semanas.length+' sem): <strong>'+fmtVal(sum, kpi.unidad)+'</strong> → alimenta Volumen de Ventas') : '';
+    return;
+  }
   var v = readCalcValues(kpi);
   if (kpi.campos.every(function(c){ return v[c.id] != null; })){
     var r = kpi.calcular(v);
@@ -572,27 +645,37 @@ function updateCalcResult(kpi){
 function handleSaveCaptura(){
   var periodo = state.currentPeriod;
   var tardia = state.windowStatus === 'late';
-  var nuevos = {};
+  var writes = []; /* {per, kid, valores} — semanal escribe en llaves AAAA-Www; el resto en el mes */
   KPIS.forEach(function(kpi){
     if (!kpi.activo) return;
     if (kpi.informativo) return;
     if (esDerivado(kpi)) return;
+    if (kpi.cadencia === 'semanal'){
+      var wy = parseInt(periodo.slice(0,4),10), wm = parseInt(periodo.slice(5,7),10);
+      isoWeeksOfMonth(wy, wm).forEach(function(wk){
+        var inp = document.getElementById('capw-'+kpi.id+'-'+wk);
+        if (inp && inp.value !== ''){ var o = {}; o[kpi.campos[0].id] = parseFloat(inp.value); writes.push({per:wk, kid:kpi.id, valores:o}); }
+      });
+      return;
+    }
     if (!aplicaCadencia(kpi.cadencia, periodo)) return;
     var v = readCalcValues(kpi);
-    if (Object.keys(v).length > 0) nuevos[kpi.id] = v;
+    if (Object.keys(v).length > 0) writes.push({per:periodo, kid:kpi.id, valores:v});
   });
-  if (Object.keys(nuevos).length === 0) { showToast('No hay valores para guardar', 'error'); return; }
+  if (writes.length === 0) { showToast('No hay valores para guardar', 'error'); return; }
   var ctx = tardia ? 'Entrega TARDÍA — explica la razón del retraso.' : 'Captura del periodo — describe contexto, supuestos o decisiones.';
   showJustifModal(ctx, function(justif){
-    if (!state.data[periodo]) state.data[periodo] = {};
-    Object.keys(nuevos).forEach(function(kid){
-      var ant = state.data[periodo][kid] || null;
-      state.data[periodo][kid] = { valores:nuevos[kid], justificacion:justif, timestamp:new Date().toISOString(), entregaTardia:tardia };
-      if (ant && ant._itemId) state.data[periodo][kid]._itemId = ant._itemId;
-      logBitacora({ accion:ant?'edit':'create', periodo:periodo, kpi:kid, anterior:ant?ant.valores:null, nuevo:nuevos[kid], justificacion:justif, entregaTardia:tardia });
+    var pers = {};
+    writes.forEach(function(w){
+      if (!state.data[w.per]) state.data[w.per] = {};
+      var ant = state.data[w.per][w.kid] || null;
+      state.data[w.per][w.kid] = { valores:w.valores, justificacion:justif, timestamp:new Date().toISOString(), entregaTardia:tardia };
+      if (ant && ant._itemId) state.data[w.per][w.kid]._itemId = ant._itemId;
+      logBitacora({ accion:ant?'edit':'create', periodo:w.per, kpi:w.kid, anterior:ant?ant.valores:null, nuevo:w.valores, justificacion:justif, entregaTardia:tardia });
+      (pers[w.per] = pers[w.per] || []).push(w.kid);
     });
     saveState();
-    syncPushPeriodo(periodo, Object.keys(nuevos));
+    Object.keys(pers).forEach(function(p){ syncPushPeriodo(p, pers[p]); });
     showToast(tardia ? '⏱ Registro guardado (tardía)' : '✓ Registro guardado', tardia ? 'error' : 'success');
     renderPanel(); switchTab('panel');
   });
