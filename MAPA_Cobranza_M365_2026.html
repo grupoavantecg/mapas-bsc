@@ -163,6 +163,11 @@ footer strong{color:var(--azul);}
 .per-nav{display:flex;align-items:center;gap:8px;margin-bottom:14px;font-size:13px;font-weight:700;color:#003A5D;flex-wrap:wrap;}
 .per-nav .btn{padding:6px 12px;font-size:12px;}
 .per-nav button:disabled{opacity:.4;cursor:not-allowed;}
+.ope-ctrl{display:flex;align-items:center;gap:16px;flex-wrap:wrap;background:#f4f7fa;border:1px solid #dbe4ec;border-radius:8px;padding:10px 14px;margin-bottom:12px;}
+.ope-ctrl .ent-sel{margin:0;}
+.ope-hint{font-size:10.5px;color:var(--muted);font-style:italic;}
+.ent-tag{display:inline-flex;align-items:center;gap:4px;background:#e8f0f6;color:#003A5D;font-size:10.5px;font-weight:700;padding:2px 9px;border-radius:12px;margin-left:8px;vertical-align:middle;}
+.ent-tag svg{opacity:.7;}
 </style>
 </head>
 <body>
@@ -249,24 +254,8 @@ const CONFIG = { proceso:'Cobranza', procesoCode:'cobranza', eje:'Gestión del C
   },
   entidades:{
     dims:[{id:'ruta', label:'Ruta'},{id:'cobrador', label:'Cobrador'}],
-    rutas:[
-      {id:'C0.0', cobrador:'Sin asignar'},
-      {id:'C1.0', cobrador:'Loreni Moo Xix'},
-      {id:'C1.1', cobrador:'Emanuel Prado'},
-      {id:'C1.2', cobrador:'Sin asignar'},
-      {id:'C2.0', cobrador:'Joel Lozano'},
-      {id:'C3.0', cobrador:'Miguel Prado'},
-      {id:'C3.1', cobrador:'Fernando Durán'},
-      {id:'C4.0', cobrador:'Carlos Mendoza'},
-      {id:'C5.0', cobrador:'Raúl Lupercio'},
-      {id:'C6.0', cobrador:'Ociel Franco'},
-      {id:'C6.1', cobrador:'Benigno Romo'},
-      {id:'C7.0', cobrador:'Daniel Rico'},
-      {id:'C7.1', cobrador:'Sin asignar'},
-      {id:'C8.0', cobrador:'Julio Romo'},
-      {id:'C9.0', cobrador:'Miguel Rodríguez'},
-      {id:'C10.0', cobrador:'Julio Becerra'}
-    ]
+    cobradores:[{id:'C0.0', nombre:'C0.0 (sin nombre)'}, {id:'C1.0', nombre:'Loreni Moo Xix'}, {id:'C1.1', nombre:'Emanuel Prado'}, {id:'C1.2', nombre:'C1.2 (sin nombre)'}, {id:'C10.0', nombre:'Julio Becerra'}, {id:'C2.0', nombre:'Joel Lozano'}, {id:'C3.0', nombre:'Miguel Prado'}, {id:'C3.1', nombre:'Fernando Durán'}, {id:'C4.0', nombre:'Carlos Mendoza'}, {id:'C5.0', nombre:'Raúl Lupercio'}, {id:'C6.0', nombre:'Ociel Franco'}, {id:'C6.1', nombre:'Benigno Romo'}, {id:'C7.0', nombre:'Daniel Rico'}, {id:'C7.1', nombre:'C7.1 (sin nombre)'}, {id:'C8.0', nombre:'Julio Romo'}, {id:'C9.0', nombre:'Miguel Rodríguez'}],
+    rutas:[{id:'R1', cobrador:'C8.0'}, {id:'R2', cobrador:'C1.0'}, {id:'R3', cobrador:'C3.0'}, {id:'R4', cobrador:'C1.1'}, {id:'R5', cobrador:'C3.0'}, {id:'R6', cobrador:'C4.0'}, {id:'R7', cobrador:'C4.0'}, {id:'R8', cobrador:'C2.0'}, {id:'R9', cobrador:'C2.0'}, {id:'R10', cobrador:'C4.0'}, {id:'R11', cobrador:'C4.0'}, {id:'R12', cobrador:'C6.0'}, {id:'R13', cobrador:'C9.0'}, {id:'R15', cobrador:'C10.0'}, {id:'R16', cobrador:'C3.1'}, {id:'R17', cobrador:'C6.0'}, {id:'R18', cobrador:'C10.0'}, {id:'R19', cobrador:'C0.0'}, {id:'R20', cobrador:'C10.0'}, {id:'R21', cobrador:'C1.1'}, {id:'R22', cobrador:'C10.0'}, {id:'R23', cobrador:'C10.0'}, {id:'R24', cobrador:'C1.1'}, {id:'R25', cobrador:'C7.0'}, {id:'R26', cobrador:'C5.0'}, {id:'R27', cobrador:'C5.0'}, {id:'R28', cobrador:'C9.0'}, {id:'R29', cobrador:'C3.0'}, {id:'R30', cobrador:'C7.0'}, {id:'R31', cobrador:'C7.1'}, {id:'R33', cobrador:'C5.0'}, {id:'R35', cobrador:'C5.0'}, {id:'R36', cobrador:'C6.1'}, {id:'R37', cobrador:'C1.2'}]
   }
 };
 
@@ -326,6 +315,7 @@ const KPIS = [
 ];
 
 function fmt1(v){ return (v == null) ? '—' : (Math.round(v*10)/10).toFixed(1); }
+function cobradorNombre(code){ var lst=(CONFIG.entidades.cobradores||[]); for(var i=0;i<lst.length;i++){ if(lst[i].id===code) return lst[i].nombre; } return code; }
 function fmtVal(kpi, v){ if (v == null) return '—';
   if ((kpi.unidad||'%') === '$') return '$' + Number(v).toLocaleString('es-MX',{maximumFractionDigits:0});
   return fmt1(v) + (kpi.unidad === '%' ? '%' : (' ' + (kpi.unidad||''))); }
@@ -603,7 +593,7 @@ function valorAnterior(kpi, periodo, ent){
   var prev = navKey(periodo, -1);
   return ent ? valorEntidad(kpi, ent, prev) : valorKpiEnPeriodo(kpi, prev);
 }
-/* ===== Panel · Diseño v4 (aprobado 2026-07-16) ===== */
+/* ===== Panel · Diseño v4 (aprobado 2026-07-16) · selector Opción B (Cobrador + drill Ruta) ===== */
 var ICO = {
   target:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/></svg>',
   award:'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="9" r="6"/><path d="M8.5 14.5 7 22l5-3 5 3-1.5-7.5"/></svg>',
@@ -616,15 +606,66 @@ var NIVEL_LBL = {estrategico:'Estratégico', tactico:'Táctico', operativo:'Oper
 var CAD_LBL = {semanal:'Semanal', mensual:'Mensual', trimestral:'Trimestral', anual:'Anual'};
 var STATUS_LBL = {v:'En meta', a:'Cerca', r:'En riesgo', g:'Sin dato'};
 
-function entSelDe(kpi){
-  var ents = entidadesDe(kpi); if (!ents.length) return null;
-  var sel = state.entSel[kpi.id];
-  if (sel && ents.indexOf(sel) >= 0) return sel;
+/* --- Selección de entidad a nivel banda operativa (Opción B) --- */
+function cobradorTieneDato(cb){
   var wks = recentIsoWeeks(27).reverse();
-  for (var i=0;i<ents.length;i++){ for (var j=0;j<wks.length;j++){ if (ndEntidadSemana(kpi, ents[i], wks[j])) return ents[i]; } }
-  return ents[0];
+  for (var j=0;j<wks.length;j++){ var pd = state.data[wks[j]]; if (!pd) continue;
+    var rutas = rutasDeCobrador(cb);
+    for (var r=0;r<rutas.length;r++){ for (var s in pd){ if (entParte(s) === rutas[r].id) return true; } } }
+  return false;
 }
-function setEntidad(kid, ent){ state.entSel[kid] = ent; renderPanel(); }
+function cobradorActivo(){
+  var lst = listaCobradores();
+  if (state.opeCobrador && lst.indexOf(state.opeCobrador) >= 0) return state.opeCobrador;
+  for (var i=0;i<lst.length;i++){ if (cobradorTieneDato(lst[i])) return lst[i]; }
+  return lst[0];
+}
+function rutaActiva(){
+  var rs = rutasDeCobrador(cobradorActivo()).map(function(r){ return r.id; });
+  if (state.opeRuta && state.opeRuta !== '__all__' && rs.indexOf(state.opeRuta) >= 0) return state.opeRuta;
+  return '__all__';
+}
+function setOpeCobrador(cb){ state.opeCobrador = cb; state.opeRuta = '__all__'; renderPanel(); }
+function setOpeRuta(r){ state.opeRuta = r; renderPanel(); }
+
+/* Agregado de un KPI por-ruta sobre las rutas de un cobrador (mismo criterio ponderado que el KPI por cobrador) */
+function valorRutaAgg(kpi, cobrador, periodKey){
+  var cad = cadenciaDeKey(periodKey);
+  var wks = (cad === 'semanal') ? [periodKey] : subPeriodos(cad, 'semanal', periodKey);
+  var acc = null;
+  wks.forEach(function(wk){ rutasDeCobrador(cobrador).forEach(function(r){
+    var nd = ndSlot(kpi, kpi.id+'@'+r.id, wk);
+    if (nd){ acc = acc || {num:0, den:0}; acc.num += nd.num; acc.den += nd.den; } }); });
+  return (acc && acc.den > 0) ? (acc.num/acc.den*100) : null;
+}
+/* Resuelve la entidad mostrada por una tarjeta operativa según la selección de banda */
+function entResuelta(kpi){
+  if (kpi.entidadDerivada) return {tipo:'cobrador', ent:cobradorActivo(), lbl:'Cobrador: '+cobradorNombre(cobradorActivo())};
+  if (kpi.porEntidad){
+    var ra = rutaActiva(), cb = cobradorActivo();
+    if (ra === '__all__') return {tipo:'rutaAgg', ent:cb, lbl:'Ruta: Todas de '+cobradorNombre(cb)};
+    return {tipo:'ruta', ent:ra, lbl:'Ruta: '+ra};
+  }
+  return null;
+}
+function valOpe(kpi, er, periodKey){
+  if (!er) return valorKpiEnPeriodo(kpi, periodKey);
+  if (er.tipo === 'ruta') return valorEntidad(kpi, er.ent, periodKey);
+  if (er.tipo === 'cobrador') return valorEntidad(kpi, er.ent, periodKey);
+  if (er.tipo === 'rutaAgg') return valorRutaAgg(kpi, er.ent, periodKey);
+  return null;
+}
+function ultimoValOpe(kpi, er){
+  var wks = recentIsoWeeks(27).reverse();
+  for (var i=0;i<wks.length;i++){ var v = valOpe(kpi, er, wks[i]); if (v !== null) return {valor:v, periodo:wks[i]}; }
+  return {valor:null, periodo:null};
+}
+/* Cobertura (opción A) de la entidad resuelta en el mes de referencia */
+function coberturaResuelta(kpi, er, mesRef){
+  var wks = subPeriodos('mensual','semanal', mesRef); var con = 0;
+  wks.forEach(function(wk){ if (valOpe(kpi, er, wk) !== null) con++; });
+  return {con:con, total:wks.length, parcial:(con > 0 && con < wks.length)};
+}
 
 function renderPanel(){
   for (var k in state.charts) { try { state.charts[k].destroy(); } catch(e){} }
@@ -633,7 +674,9 @@ function renderPanel(){
   [['estrategico','band-est'],['tactico','band-tac'],['operativo','band-ope']].forEach(function(b){
     var arr = KPIS.filter(function(k){ return k.nivel === b[0]; });
     if (!arr.length) return;
-    html += '<div class="band '+b[1]+'"><div class="band-h"><span class="dot"></span>Nivel '+NIVEL_LBL[b[0]]+'</div><div class="kpi-grid">';
+    html += '<div class="band '+b[1]+'"><div class="band-h"><span class="dot"></span>Nivel '+NIVEL_LBL[b[0]]+'</div>';
+    if (b[0] === 'operativo') html += opeSelectorHtml();
+    html += '<div class="kpi-grid">';
     arr.forEach(function(kpi, idx){
       var full = (arr.length === 1) || (arr.length % 2 === 1 && idx === arr.length-1);
       html += renderKpiCard(kpi, full);
@@ -642,6 +685,20 @@ function renderPanel(){
   });
   document.getElementById('tab-panel').innerHTML = html;
   setTimeout(function(){ KPIS.forEach(function(kpi){ if (kpi.activo) renderTrendChart(kpi); }); }, 50);
+}
+
+function opeSelectorHtml(){
+  var cb = cobradorActivo(), ra = rutaActiva();
+  var rutas = rutasDeCobrador(cb);
+  var cobOpts = listaCobradores().map(function(c){
+    return '<option value="'+c+'"'+(c===cb?' selected':'')+'>'+cobradorNombre(c)+(cobradorTieneDato(c)?'':' (sin dato)')+'</option>'; }).join('');
+  var rutaOpts = '<option value="__all__"'+(ra==='__all__'?' selected':'')+'>Todas (agregado del cobrador)</option>' +
+    rutas.map(function(r){ return '<option value="'+r.id+'"'+(r.id===ra?' selected':'')+'>'+r.id+'</option>'; }).join('');
+  return '<div class="ope-ctrl">' +
+    '<div class="ent-sel">'+ICO.user+'<span><strong>Cobrador:</strong></span><select onchange="setOpeCobrador(this.value)">'+cobOpts+'</select></div>' +
+    '<div class="ent-sel">'+ICO.bars+'<span><strong>Ruta (drill):</strong></span><select onchange="setOpeRuta(this.value)">'+rutaOpts+'</select></div>' +
+    '<span class="ope-hint">Los KPIs «por Cobrador» muestran el agregado de '+cobradorNombre(cb)+'; los «por Ruta» muestran '+(ra==='__all__'?'el agregado de sus rutas':('la '+ra))+'.</span>' +
+    '</div>';
 }
 
 function brechaHtml(kpi, valor){
@@ -657,8 +714,7 @@ function flechaTendencia(kpi, actual, previo){
   if (actual == null || previo == null) return '';
   var sentido = kpi.sentido || 'max';
   var mejor = sentido === 'max' ? actual > previo : actual < previo;
-  var igual = Math.abs(actual - previo) < 0.05;
-  if (igual) return '<span class="tnd" style="color:#5a6b76;">▶</span>';
+  if (Math.abs(actual - previo) < 0.05) return '<span class="tnd" style="color:#5a6b76;">▶</span>';
   return mejor ? '<span class="tnd" style="color:#1F9D6B;">▲</span>' : '<span class="tnd" style="color:#EB002A;">▼</span>';
 }
 function badgeRow(kpi){
@@ -681,41 +737,33 @@ function renderKpiCard(kpi, full){
       '<span class="nivel '+kpi.nivel+'">'+NIVEL_LBL[kpi.nivel]+'</span><h3>'+kpi.nombre+'</h3></div></div>' +
       '<div class="cap-na">KPI inactivo en esta fase.</div></div>';
   }
-  var ent = esEntidad(kpi) ? entSelDe(kpi) : null;
-  var uv, valor, periodo;
-  if (ent){
-    var wks = recentIsoWeeks(27).reverse(); valor = null; periodo = null;
-    for (var i=0;i<wks.length;i++){ var v0 = valorEntidad(kpi, ent, wks[i]); if (v0 !== null){ valor = v0; periodo = wks[i]; break; } }
-    uv = {valor:valor, periodo:periodo, derivado:!!kpi.entidadDerivada, tardia:false};
-  } else { uv = ultimoValor(kpi); valor = uv.valor; periodo = uv.periodo; }
+  var er = esEntidad(kpi) ? entResuelta(kpi) : null;
+  var valor, periodo;
+  if (er){ var uo = ultimoValOpe(kpi, er); valor = uo.valor; periodo = uo.periodo; }
+  else { var uv = ultimoValor(kpi); valor = uv.valor; periodo = uv.periodo; }
   var sem = (valor !== null && kpi.meta != null) ? kpi.semaforo(valor, kpi.meta) : 'g';
-  var prev = valorAnterior(kpi, periodo, ent);
+  var prev = periodo ? valOpe(kpi, er, navKey(periodo, -1)) : null;
+  var derivadoMarca = er ? (er.tipo !== 'ruta') : esDerivado(kpi);
+  var entTxt = er ? (er.tipo==='ruta' ? er.ent : cobradorNombre(er.ent)) : '';
+  var entLbl = er ? '<span class="ent-tag">'+ICO.user+entTxt+(er.tipo==='rutaAgg'?' · agregado':'')+'</span>' : '';
   var parcialChip = '';
-  if (ent){
-    var mesRef = periodoCerrado('mensual');
-    var cov = coberturaEntidad(kpi, ent, mesRef);
-    if (cov && cov.parcial) parcialChip = '<span class="parcial-chip" title="Entidad activa con captura en '+cov.con+' de '+cov.total+' semanas de '+labelPeriodo(mesRef)+'">◐ Actividad parcial '+cov.con+'/'+cov.total+'</span>';
+  if (er && valor !== null){
+    var cov = coberturaResuelta(kpi, er, periodoCerrado('mensual'));
+    if (cov.parcial) parcialChip = '<span class="parcial-chip" title="Con captura semanal en '+cov.con+' de '+cov.total+' semanas del mes de referencia">◐ Actividad parcial '+cov.con+'/'+cov.total+'</span>';
   }
-  var entSelHtml = '';
-  if (esEntidad(kpi)){
-    var dim = kpi.porEntidad || (kpi.entidadDerivada && kpi.entidadDerivada.dim);
-    var dimLbl = dim === 'ruta' ? 'Ruta' : 'Cobrador';
-    entSelHtml = '<div class="ent-sel">'+ICO.user+'<span>'+dimLbl+':</span><select onchange="setEntidad(\''+kpi.id+'\', this.value)">' +
-      entidadesDe(kpi).map(function(e2){ return '<option value="'+e2+'"'+(e2===ent?' selected':'')+'>'+e2+'</option>'; }).join('') +
-      '</select></div>';
-  }
-  var marca = uv.derivado ? '⚙ Se calcula' : (uv.tardia ? '⏱ Tardía' : (periodo ? '✓ Capturado' : ''));
+  var marca = derivadoMarca ? '⚙ Se calcula' : (periodo ? '✓ Capturado' : '');
+  var laneInfo = periodo ? (labelPeriodo(periodo)+' · '+marca) : (er ? 'Sin captura semanal por ruta aún' : 'sin datos');
   return '<div class="kpi-card v3 sem-'+sem+(full?' full':'')+'">' +
     '<div class="card-head"><div class="ch-left">' +
       '<span class="nivel '+kpi.nivel+'">'+NIVEL_LBL[kpi.nivel]+'</span>' +
-      '<h3>'+kpi.nombre+'</h3></div>' +
+      '<h3>'+kpi.nombre+'</h3>'+entLbl+'</div>' +
       '<div class="ch-right">' +
         '<div class="ch-num"><div class="ch-lbl">Resultado</div><div class="ch-val sem-t-'+sem+'">'+fmtVal(kpi, valor)+'</div></div>' +
         '<div class="ch-num"><div class="ch-lbl">Meta</div><div class="ch-val">'+(kpi.meta==null?'—':'≥ '+fmtVal(kpi, kpi.meta))+'</div></div>' +
         '<div class="ch-num"><div class="ch-lbl">Brecha</div>'+brechaHtml(kpi, valor)+'</div>' +
       '</div></div>' +
-    badgeRow(kpi) + entSelHtml +
-    '<div class="chip-lane"><span style="font-size:10px;color:var(--muted);margin-right:auto;">'+(periodo ? labelPeriodo(periodo)+' · '+marca : 'sin datos')+'</span>' +
+    badgeRow(kpi) +
+    '<div class="chip-lane"><span style="font-size:10px;color:var(--muted);margin-right:auto;">'+laneInfo+'</span>' +
       parcialChip + flechaTendencia(kpi, valor, prev) +
       '<span class="status-chip '+sem+'">'+STATUS_LBL[sem]+'</span></div>' +
     '<div class="kpi-trend-box" id="trend-'+kpi.id+'"><canvas id="canvas-'+kpi.id+'"></canvas></div>' +
@@ -736,7 +784,6 @@ function chartViewToggleHtml(){
     '<button class="ct-btn'+(v==='12m'?' on':'')+'" onclick="setChartView(\'12m\')">Últimos 12 periodos</button>' +
     '<button class="ct-btn'+(v==='yoy'?' on':'')+'" onclick="setChartView(\'yoy\')">Comparativa vs año anterior</button></div>';
 }
-/* Eje Y dinámico con margen ±10% del rango (diseño v4); siempre incluye la meta */
 function ejeY(kpi, vals){
   var nums = (vals||[]).filter(function(v){ return v!==null && !isNaN(v); });
   if (kpi.meta != null) nums.push(kpi.meta);
@@ -789,8 +836,8 @@ function renderTrendChart(kpi){
   var box = document.getElementById('trend-'+kpi.id); if (!box) return;
   var serie = [];
   if (esEntidad(kpi)){
-    var ent = entSelDe(kpi);
-    recentIsoWeeks(13).forEach(function(wk){ serie.push({label:'S'+(+wk.slice(6)), value:valorEntidad(kpi, ent, wk)}); });
+    var er = entResuelta(kpi);
+    recentIsoWeeks(13).forEach(function(wk){ serie.push({label:'S'+(+wk.slice(6)), value:valOpe(kpi, er, wk)}); });
   } else if (kpi.cadencia === 'semanal'){
     recentIsoWeeks(13).forEach(function(wk){ serie.push({label:'S'+(+wk.slice(6)), value:valorKpiEnPeriodo(kpi, wk)}); });
   } else {
@@ -808,7 +855,8 @@ function renderTrendChart(kpi){
     }
   }
   if (!serie.some(function(s){return s.value !== null;})){
-    box.outerHTML = '<div class="kpi-trend-empty">Sin tendencia · captura el primer periodo para ver la gráfica</div>';
+    var msg = esEntidad(kpi) ? 'Sin captura semanal por ruta para esta entidad' : 'Sin tendencia · captura el primer periodo para ver la gráfica';
+    box.outerHTML = '<div class="kpi-trend-empty">'+msg+'</div>';
     return;
   }
   var canvas = document.getElementById('canvas-'+kpi.id); if (!canvas) return;
@@ -873,7 +921,7 @@ function renderCaptura(){
   if (hayEntidad){
     html += '<div class="ent-sel" style="margin-bottom:14px;font-size:12px;">'+ICO.user+'<span><strong>Ruta:</strong></span><select onchange="setCapRuta(this.value)">' +
       CONFIG.entidades.rutas.map(function(r){
-        return '<option value="'+r.id+'"'+(r.id===state.capRuta?' selected':'')+'>'+r.id+' · '+r.cobrador+'</option>';
+        return '<option value="'+r.id+'"'+(r.id===state.capRuta?' selected':'')+'>'+r.id+' · '+cobradorNombre(r.cobrador)+'</option>';
       }).join('') + '</select>' +
       '<span style="color:var(--muted);">La captura semanal es por ruta; cobrador y proceso se derivan automáticamente.</span></div>';
   }
