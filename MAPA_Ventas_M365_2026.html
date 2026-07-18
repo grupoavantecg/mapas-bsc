@@ -472,7 +472,7 @@ function fraccionTranscurrida(key){
 /* Meta ajustada al periodo: prorrateada si está EN CURSO y el KPI es acumulativo (no ratio). */
 function metaEfectiva(kpi, periodo){
   if (kpi.meta == null) return null;
-  if (periodo && enCurso(periodo) && !esRatio(kpi)) return kpi.meta * fraccionTranscurrida(periodo);
+  if (periodo && enCurso(periodo) && !esRatio(kpi) && (kpi.unidad||'%') !== '%') return kpi.meta * fraccionTranscurrida(periodo);
   return kpi.meta;
 }
 function aggDe(kpi){ return kpi.agregacion || (esRatio(kpi) ? 'ponderado' : 'promedio'); }
@@ -674,8 +674,10 @@ var STATUS_LBL = {v:'En meta', a:'Cerca', r:'En riesgo', g:'Sin dato'};
 function entTieneDato(dim, id){
   var wks = recentIsoWeeks(27).reverse();
   var leaves = (dim === entLeaf()) ? [id] : entHijos(id).map(function(x){ return x.id; });
-  for (var j=0;j<wks.length;j++){ var pd = state.data[wks[j]]; if (!pd) continue;
-    for (var s in pd){ var ep = entParte(s); if (ep && leaves.indexOf(ep) >= 0) return true; } }
+  for (var j=0;j<wks.length;j++){
+    var fuentes = [state.data[wks[j]], state.historia[wks[j]]]; /* vivo + historia estática (fix: antes solo vivo) */
+    for (var f=0;f<2;f++){ var pd = fuentes[f]; if (!pd) continue;
+      for (var s in pd){ var ep = entParte(s); if (ep && leaves.indexOf(ep) >= 0) return true; } } }
   return false;
 }
 function entPrimActivo(){
@@ -830,7 +832,7 @@ function renderKpiCard(kpi, full){
   var cursoChip = '';
   if (periodo && enCurso(periodo)){
     var fr = Math.round(fraccionTranscurrida(periodo)*100);
-    var metaTxt = (metaEf != null && !esRatio(kpi)) ? ' · meta a la fecha ' + fmtVal(kpi, metaEf) : '';
+    var metaTxt = (metaEf != null && metaEf !== kpi.meta) ? ' · meta a la fecha ' + fmtVal(kpi, metaEf) : '';
     cursoChip = '<span style="background:#fff7e6;color:#a16207;font-size:10px;font-weight:700;padding:3px 8px;border-radius:12px;" title="Periodo en curso: transcurrido '+fr+'%'+(metaTxt?'; el sem\u00e1foro y la brecha comparan contra la meta prorrateada a la fecha':'')+'">\u23f3 En curso '+fr+'%'+metaTxt+'</span>';
   }
   var derivadoMarca = er ? (er.tipo === 'top' || er.tipo === 'leafAgg') : esDerivado(kpi);
