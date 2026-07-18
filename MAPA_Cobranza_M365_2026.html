@@ -896,14 +896,40 @@ function renderYoYChart(kpi, box){
     options: chartOptions(kpi, actual.concat(previo))
   });
 }
+function renderYoYWeek(kpi, box, er){
+  var wks = recentIsoWeeks(13), labels=[], actual=[], previo=[];
+  wks.forEach(function(wk){
+    var y = +wk.slice(0,4), wn = wk.slice(6);
+    labels.push('S'+(+wn));
+    actual.push(er ? valOpe(kpi, er, wk) : valorKpiEnPeriodo(kpi, wk));
+    var wkPrev = (y-1)+'-W'+wn;
+    previo.push(er ? valOpe(kpi, er, wkPrev) : valorKpiEnPeriodo(kpi, wkPrev));
+  });
+  if (!actual.concat(previo).some(function(v){ return v!==null; })){
+    box.outerHTML = '<div class="kpi-trend-empty">Sin datos para la comparativa anual</div>'; return;
+  }
+  var canvas = document.getElementById('canvas-'+kpi.id); if (!canvas) return;
+  var Y = new Date().getFullYear();
+  state.charts[kpi.id] = new Chart(canvas.getContext('2d'), {
+    type:'line',
+    data:{ labels:labels, datasets:[
+      {label:''+Y, data:actual, borderColor:'#003A5D', backgroundColor:'rgba(0,58,93,.10)', borderWidth:2.5, pointRadius:4, pointHoverRadius:6, tension:.3, fill:false, spanGaps:true},
+      {label:''+(Y-1), data:previo, borderColor:'#8A9BAA', borderWidth:2, borderDash:[6,4], pointRadius:3, pointHoverRadius:5, tension:.3, fill:false, spanGaps:true},
+      {label:'Meta', data:labels.map(function(){ return kpi.meta; }), borderColor:'#EB002A', borderDash:[5,4], borderWidth:2, pointRadius:0, fill:false}
+    ]},
+    options: chartOptions(kpi, actual.concat(previo))
+  });
+}
 function renderTrendChart(kpi){
   if (typeof Chart === 'undefined') return;
   var box = document.getElementById('trend-'+kpi.id); if (!box) return;
   var serie = [];
   if (esEntidad(kpi)){
     var er = entResuelta(kpi);
+    if (state.chartView === 'yoy'){ renderYoYWeek(kpi, box, er); return; }
     recentIsoWeeks(13).forEach(function(wk){ serie.push({label:'S'+(+wk.slice(6)), value:valOpe(kpi, er, wk)}); });
   } else if (kpi.cadencia === 'semanal'){
+    if (state.chartView === 'yoy'){ renderYoYWeek(kpi, box, null); return; }
     recentIsoWeeks(13).forEach(function(wk){ serie.push({label:'S'+(+wk.slice(6)), value:valorKpiEnPeriodo(kpi, wk)}); });
   } else {
     if (state.chartView === 'yoy'){ renderYoYChart(kpi, box); return; }
