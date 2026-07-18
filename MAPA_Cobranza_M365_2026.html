@@ -239,7 +239,7 @@ footer strong{color:var(--azul);}
 /* ============ GOLDEN MASTER v3 · Panel BSC Grupo Avante CG ============ */
 const CONFIG = { proceso:'Cobranza', procesoCode:'cobranza', eje:'Gestión del Crédito',
   responsable:'MAJR', responsableNombre:'Miguel Ángel Juárez Rivera',
-  ventanaInicio:1, ventanaFin:7, storageKey:'ga_proc_cobranza', version:'3.0',
+  ventanaInicio:1, ventanaFin:7, storageKey:'ga_proc_cobranza', version:'3.0', historiaUrl:'historia/cobranza.json',
   usuarios:{
     'luisecasillas@casamobel.mx':{id:'LECG', admin:true, procesos:'*'},
     'econhogar@casamobel.mx':{id:'MAJR', procesos:['Cobranza','Ventas','Atracción y Satisfacción del Cliente']},
@@ -253,9 +253,13 @@ const CONFIG = { proceso:'Cobranza', procesoCode:'cobranza', eje:'Gestión del C
     'almacen@casamobel.mx':{id:'EAAP', procesos:['Almacén']}
   },
   entidades:{
-    dims:[{id:'ruta', label:'Ruta'},{id:'cobrador', label:'Cobrador'}],
-    cobradores:[{id:'C0.0', nombre:'C0.0 (sin nombre)'}, {id:'C1.0', nombre:'Loreni Moo Xix'}, {id:'C1.1', nombre:'Emanuel Prado'}, {id:'C1.2', nombre:'C1.2 (sin nombre)'}, {id:'C10.0', nombre:'Julio Becerra'}, {id:'C2.0', nombre:'Joel Lozano'}, {id:'C3.0', nombre:'Miguel Prado'}, {id:'C3.1', nombre:'Fernando Durán'}, {id:'C4.0', nombre:'Carlos Mendoza'}, {id:'C5.0', nombre:'Raúl Lupercio'}, {id:'C6.0', nombre:'Ociel Franco'}, {id:'C6.1', nombre:'Benigno Romo'}, {id:'C7.0', nombre:'Daniel Rico'}, {id:'C7.1', nombre:'C7.1 (sin nombre)'}, {id:'C8.0', nombre:'Julio Romo'}, {id:'C9.0', nombre:'Miguel Rodríguez'}],
-    rutas:[{id:'R1', cobrador:'C8.0'}, {id:'R2', cobrador:'C1.0'}, {id:'R3', cobrador:'C3.0'}, {id:'R4', cobrador:'C1.1'}, {id:'R5', cobrador:'C3.0'}, {id:'R6', cobrador:'C4.0'}, {id:'R7', cobrador:'C4.0'}, {id:'R8', cobrador:'C2.0'}, {id:'R9', cobrador:'C2.0'}, {id:'R10', cobrador:'C4.0'}, {id:'R11', cobrador:'C4.0'}, {id:'R12', cobrador:'C6.0'}, {id:'R13', cobrador:'C9.0'}, {id:'R15', cobrador:'C10.0'}, {id:'R16', cobrador:'C3.1'}, {id:'R17', cobrador:'C6.0'}, {id:'R18', cobrador:'C10.0'}, {id:'R19', cobrador:'C0.0'}, {id:'R20', cobrador:'C10.0'}, {id:'R21', cobrador:'C1.1'}, {id:'R22', cobrador:'C10.0'}, {id:'R23', cobrador:'C10.0'}, {id:'R24', cobrador:'C1.1'}, {id:'R25', cobrador:'C7.0'}, {id:'R26', cobrador:'C5.0'}, {id:'R27', cobrador:'C5.0'}, {id:'R28', cobrador:'C9.0'}, {id:'R29', cobrador:'C3.0'}, {id:'R30', cobrador:'C7.0'}, {id:'R31', cobrador:'C7.1'}, {id:'R33', cobrador:'C5.0'}, {id:'R35', cobrador:'C5.0'}, {id:'R36', cobrador:'C6.1'}, {id:'R37', cobrador:'C1.2'}]
+    dims:['ruta','cobrador'],
+    labels:{ruta:'Ruta', cobrador:'Cobrador'},
+    jerarquia:{ruta:'cobrador'},
+    catalogo:{
+      cobrador:[{id:'C0.0', nombre:'C0.0 (sin nombre)'}, {id:'C1.0', nombre:'Loreni Moo Xix'}, {id:'C1.1', nombre:'Emanuel Prado'}, {id:'C1.2', nombre:'C1.2 (sin nombre)'}, {id:'C10.0', nombre:'Julio Becerra'}, {id:'C2.0', nombre:'Joel Lozano'}, {id:'C3.0', nombre:'Miguel Prado'}, {id:'C3.1', nombre:'Fernando Durán'}, {id:'C4.0', nombre:'Carlos Mendoza'}, {id:'C5.0', nombre:'Raúl Lupercio'}, {id:'C6.0', nombre:'Ociel Franco'}, {id:'C6.1', nombre:'Benigno Romo'}, {id:'C7.0', nombre:'Daniel Rico'}, {id:'C7.1', nombre:'C7.1 (sin nombre)'}, {id:'C8.0', nombre:'Julio Romo'}, {id:'C9.0', nombre:'Miguel Rodríguez'}],
+      ruta:[{id:'R1', parent:'C8.0'}, {id:'R2', parent:'C1.0'}, {id:'R3', parent:'C3.0'}, {id:'R4', parent:'C1.1'}, {id:'R5', parent:'C3.0'}, {id:'R6', parent:'C4.0'}, {id:'R7', parent:'C4.0'}, {id:'R8', parent:'C2.0'}, {id:'R9', parent:'C2.0'}, {id:'R10', parent:'C4.0'}, {id:'R11', parent:'C4.0'}, {id:'R12', parent:'C6.0'}, {id:'R13', parent:'C9.0'}, {id:'R15', parent:'C10.0'}, {id:'R16', parent:'C3.1'}, {id:'R17', parent:'C6.0'}, {id:'R18', parent:'C10.0'}, {id:'R19', parent:'C0.0'}, {id:'R20', parent:'C10.0'}, {id:'R21', parent:'C1.1'}, {id:'R22', parent:'C10.0'}, {id:'R23', parent:'C10.0'}, {id:'R24', parent:'C1.1'}, {id:'R25', parent:'C7.0'}, {id:'R26', parent:'C5.0'}, {id:'R27', parent:'C5.0'}, {id:'R28', parent:'C9.0'}, {id:'R29', parent:'C3.0'}, {id:'R30', parent:'C7.0'}, {id:'R31', parent:'C7.1'}, {id:'R33', parent:'C5.0'}, {id:'R35', parent:'C5.0'}, {id:'R36', parent:'C6.1'}, {id:'R37', parent:'C1.2'}]
+    }
   }
 };
 
@@ -315,12 +319,27 @@ const KPIS = [
 ];
 
 function fmt1(v){ return (v == null) ? '—' : (Math.round(v*10)/10).toFixed(1); }
-function cobradorNombre(code){ var lst=(CONFIG.entidades.cobradores||[]); for(var i=0;i<lst.length;i++){ if(lst[i].id===code) return lst[i].nombre; } return code; }
+/* ===== Capa de entidad GENÉRICA (data-driven desde CONFIG.entidades) ===== */
+function entCfg(){ return CONFIG.entidades || null; }
+function entDims(){ var e=entCfg(); return e ? (e.dims||[]) : []; }              /* orden: leaf-first ... root-last */
+function tieneEntidades(){ return entDims().length>0; }
+function entLeaf(){ var d=entDims(); return d.length? d[0] : null; }             /* dimensión de captura (nivel más bajo) */
+function entTop(){ var d=entDims(); return d.length? d[d.length-1] : null; }     /* dimensión primaria del selector */
+function entList(dim){ var e=entCfg(); return (e && e.catalogo && e.catalogo[dim]) ? e.catalogo[dim] : []; }
+function entLabel(dim){ var e=entCfg(); return (e && e.labels && e.labels[dim]) ? e.labels[dim] : dim; }
+function entNombre(dim,id){ var l=entList(dim); for(var i=0;i<l.length;i++){ if(l[i].id===id) return l[i].nombre||l[i].id; } return id; }
+function entPadreDim(dim){ var e=entCfg(); return (e && e.jerarquia && e.jerarquia[dim]) ? e.jerarquia[dim] : null; }
+function entPadreDe(dim,id){ var l=entList(dim); for(var i=0;i<l.length;i++){ if(l[i].id===id) return l[i].parent||null; } return null; }
+function entHijos(parentId){ var leaf=entLeaf(); return entList(leaf).filter(function(x){ return x.parent===parentId; }); }
+/* Compatibilidad con nombres previos usados por el motor */
+function cobradorNombre(id){ return entNombre(entTop(), id); }
+function listaCobradores(){ return entList(entTop()).map(function(x){ return x.id; }); }
+function rutasDeCobrador(pid){ return entHijos(pid); }
 function fmtVal(kpi, v){ if (v == null) return '—';
   if ((kpi.unidad||'%') === '$') return '$' + Number(v).toLocaleString('es-MX',{maximumFractionDigits:0});
   return fmt1(v) + (kpi.unidad === '%' ? '%' : (' ' + (kpi.unidad||''))); }
 
-let state = { authenticated:false, data:{}, bitacora:[], currentPeriod:null, windowStatus:null, charts:{},
+let state = { authenticated:false, data:{}, historia:{}, bitacora:[], currentPeriod:null, windowStatus:null, charts:{},
   userId:null, isAdmin:false, entSel:{}, capCad:null, capPer:{} };
 state.chartView = localStorage.getItem(CONFIG.storageKey+'_chartview') || '12m';
 
@@ -332,6 +351,10 @@ function resolveUser(email){
   return { id:u.id, permitido:permitido, admin:!!u.admin };
 }
 
+/* Lectura a través de historia estática (solo lectura) + buffer vivo. El vivo prevalece. */
+function cap(p, s){ var d = state.data[p] && state.data[p][s]; if (d) return d; var h = state.historia[p] && state.historia[p][s]; return h || undefined; }
+function periodosConDatos(){ var o={}; var p; for (p in state.data) o[p]=1; for (p in state.historia) o[p]=1; return Object.keys(o); }
+function periodoTieneAlgo(p){ return (state.data[p] && Object.keys(state.data[p]).length>0) || (state.historia[p] && Object.keys(state.historia[p]).length>0); }
 function loadState(){ var s = localStorage.getItem(CONFIG.storageKey+'_data'); if (s) state.data = JSON.parse(s);
   var l = localStorage.getItem(CONFIG.storageKey+'_log'); if (l) state.bitacora = JSON.parse(l); }
 function saveState(){ localStorage.setItem(CONFIG.storageKey+'_data', JSON.stringify(state.data));
@@ -428,12 +451,9 @@ function baseId(slot){ var p = slot.indexOf('@'); return p < 0 ? slot : slot.sli
 function entParte(slot){ var p = slot.indexOf('@'); return p < 0 ? null : slot.slice(p+1); }
 function esDerivado(kpi){ return !!(kpi.derivaDe && kpi.derivaDe.length); }
 function esEntidad(kpi){ return !!(kpi.porEntidad || kpi.entidadDerivada); }
-function rutasDeCobrador(cb){ return CONFIG.entidades.rutas.filter(function(r){ return r.cobrador === cb; }); }
-function listaCobradores(){ var seen = {}, out = [];
-  CONFIG.entidades.rutas.forEach(function(r){ if (!seen[r.cobrador]){ seen[r.cobrador] = true; out.push(r.cobrador); } });
-  return out; }
-function entidadesDe(kpi){ if (kpi.porEntidad === 'ruta') return CONFIG.entidades.rutas.map(function(r){ return r.id; });
-  if (kpi.entidadDerivada) return listaCobradores();
+/* rutasDeCobrador y listaCobradores viven en la capa genérica (app1). */
+function entidadesDe(kpi){ if (kpi.porEntidad) return entList(kpi.porEntidad).map(function(x){ return x.id; });
+  if (kpi.entidadDerivada) return entList(kpi.entidadDerivada.dim).map(function(x){ return x.id; });
   return []; }
 
 function subPeriodos(derivCad, srcCad, periodKey){
@@ -454,10 +474,28 @@ function clon(o){ var r={}; for (var k in o) r[k]=o[k]; return r; }
 
 /* num/den de un slot capturado */
 function ndSlot(kpi, slot, periodKey){
-  var d = state.data[periodKey] && state.data[periodKey][slot]; if (!d) return null;
+  if (!esRatio(kpi)) return null; /* solo ratios tienen num/den */
+  var d = cap(periodKey, slot); if (!d) return null;
   var n = Number(d.valores[kpi.campos[0].id]), q = Number(d.valores[kpi.campos[1].id]);
   if (isNaN(n) || isNaN(q)) return null;
   return {num:n, den:q};
+}
+/* Valor DIRECTO (no ratio) de un slot capturado */
+function valSlot(kpi, slot, periodKey){
+  var d = cap(periodKey, slot); if (!d) return null;
+  var v = kpi.calcular ? kpi.calcular(d.valores) : null;
+  return (v==null || isNaN(v)) ? null : v;
+}
+/* Valor directo de una entidad en una semana (hoja directa o padre sumando sus hijos) */
+function sumEntidadSemana(kpi, ent, wk){
+  if (kpi.porEntidad) return valSlot(kpi, kpi.id+'@'+ent, wk);
+  if (kpi.entidadDerivada){
+    var src = kpiById(kpi.entidadDerivada.src); if (!src) return null;
+    var tot = null;
+    entHijos(ent).forEach(function(r){ var v = valSlot(src, src.id+'@'+r.id, wk); if (v!=null){ tot=(tot||0)+v; } });
+    return tot;
+  }
+  return null;
 }
 /* num/den agregado de un KPI porEntidad en UNA semana: todas las entidades activas (denominador dinámico) */
 function ndProcesoSemana(kpi, wk){
@@ -486,16 +524,21 @@ function ndEntidadSemana(kpi, ent, wk){
 function valorEntidad(kpi, ent, periodKey){
   var cad = cadenciaDeKey(periodKey);
   var wks = (cad === 'semanal') ? [periodKey] : subPeriodos(cad, 'semanal', periodKey);
-  var acc = null;
-  wks.forEach(function(wk){ var nd = ndEntidadSemana(kpi, ent, wk);
-    if (nd){ acc = acc || {num:0, den:0}; acc.num += nd.num; acc.den += nd.den; } });
-  return (acc && acc.den > 0) ? (acc.num/acc.den*100) : null;
+  if (esRatio(kpi)){
+    var acc = null;
+    wks.forEach(function(wk){ var nd = ndEntidadSemana(kpi, ent, wk);
+      if (nd){ acc = acc || {num:0, den:0}; acc.num += nd.num; acc.den += nd.den; } });
+    return (acc && acc.den > 0) ? (acc.num/acc.den*100) : null;
+  }
+  var tot = null; /* directo: suma entre semanas */
+  wks.forEach(function(wk){ var v = sumEntidadSemana(kpi, ent, wk); if (v!=null){ tot=(tot||0)+v; } });
+  return tot;
 }
 /* Cobertura de semanas de una entidad en un periodo (opción A · actividad parcial) */
 function coberturaEntidad(kpi, ent, periodKey){
   var cad = cadenciaDeKey(periodKey); if (cad === 'semanal') return null;
   var wks = subPeriodos(cad, 'semanal', periodKey);
-  var con = 0; wks.forEach(function(wk){ if (ndEntidadSemana(kpi, ent, wk)) con++; });
+  var con = 0; wks.forEach(function(wk){ if (esRatio(kpi) ? ndEntidadSemana(kpi, ent, wk) : (sumEntidadSemana(kpi, ent, wk)!=null)) con++; });
   return {con:con, total:wks.length, parcial:(con > 0 && con < wks.length)};
 }
 
@@ -546,15 +589,18 @@ function valorDerivado(kpi, periodKey, seen){
   return vals.reduce(function(a,b){return a+b;},0)/vals.length;
 }
 function valorKpiEnPeriodo(kpi, periodKey, seen){
-  if (kpi.porEntidad){ var nd = numDenEnPeriodo(kpi, periodKey); return (nd && nd.den>0) ? (nd.num/nd.den*100) : null; }
+  if (kpi.porEntidad){
+    if (esRatio(kpi)){ var nd = numDenEnPeriodo(kpi, periodKey); return (nd && nd.den>0) ? (nd.num/nd.den*100) : null; }
+    var tot = null; entidadesDe(kpi).forEach(function(e){ var v = valorEntidad(kpi, e, periodKey); if (v!=null){ tot=(tot||0)+v; } }); return tot;
+  }
   if (kpi.entidadDerivada){ var src = kpiById(kpi.entidadDerivada.src); return src ? valorKpiEnPeriodo(src, periodKey, seen) : null; }
   if (esDerivado(kpi)){
     var v = valorDerivado(kpi, periodKey, seen);
     if (v !== null) return v;
-    var d0 = state.data[periodKey] && state.data[periodKey][kpi.id];
+    var d0 = cap(periodKey, kpi.id);
     return d0 ? kpi.calcular(d0.valores) : null;
   }
-  var d = state.data[periodKey] && state.data[periodKey][kpi.id];
+  var d = cap(periodKey, kpi.id);
   return d ? kpi.calcular(d.valores) : null;
 }
 function candidatePeriods(cad){
@@ -581,7 +627,7 @@ function ultimoValor(kpi){
       } }
     return {valor:null, periodo:null, tardia:false, derivado:true};
   }
-  var periodos = Object.keys(state.data).sort().reverse();
+  var periodos = periodosConDatos().sort().reverse();
   for (var m=0;m<periodos.length;m++){ var p = periodos[m];
     if (state.data[p][kpi.id]){ var r = state.data[p][kpi.id]; var val = kpi.calcular(r.valores);
       if (val !== null) return {valor:val, periodo:p, tardia:r.entregaTardia||false, derivado:false}; } }
@@ -606,66 +652,80 @@ var NIVEL_LBL = {estrategico:'Estratégico', tactico:'Táctico', operativo:'Oper
 var CAD_LBL = {semanal:'Semanal', mensual:'Mensual', trimestral:'Trimestral', anual:'Anual'};
 var STATUS_LBL = {v:'En meta', a:'Cerca', r:'En riesgo', g:'Sin dato'};
 
-/* --- Selección de entidad a nivel banda operativa (Opción B) --- */
-function cobradorTieneDato(cb){
+/* --- Selección de entidad GENÉRICA (0/1/2 dimensiones) · Opción B --- */
+/* state.entPrim = entidad de la dimensión primaria (top). state.entDrill = leaf id o '__all__' (solo 2 dims). */
+function entTieneDato(dim, id){
   var wks = recentIsoWeeks(27).reverse();
+  var leaves = (dim === entLeaf()) ? [id] : entHijos(id).map(function(x){ return x.id; });
   for (var j=0;j<wks.length;j++){ var pd = state.data[wks[j]]; if (!pd) continue;
-    var rutas = rutasDeCobrador(cb);
-    for (var r=0;r<rutas.length;r++){ for (var s in pd){ if (entParte(s) === rutas[r].id) return true; } } }
+    for (var s in pd){ var ep = entParte(s); if (ep && leaves.indexOf(ep) >= 0) return true; } }
   return false;
 }
-function cobradorActivo(){
-  var lst = listaCobradores();
-  if (state.opeCobrador && lst.indexOf(state.opeCobrador) >= 0) return state.opeCobrador;
-  for (var i=0;i<lst.length;i++){ if (cobradorTieneDato(lst[i])) return lst[i]; }
+function entPrimActivo(){
+  var top = entTop(); var lst = entList(top).map(function(x){ return x.id; });
+  if (!lst.length) return null;
+  if (state.entPrim && lst.indexOf(state.entPrim) >= 0) return state.entPrim;
+  for (var i=0;i<lst.length;i++){ if (entTieneDato(top, lst[i])) return lst[i]; }
   return lst[0];
 }
-function rutaActiva(){
-  var rs = rutasDeCobrador(cobradorActivo()).map(function(r){ return r.id; });
-  if (state.opeRuta && state.opeRuta !== '__all__' && rs.indexOf(state.opeRuta) >= 0) return state.opeRuta;
+function entDrillActivo(){
+  if (entDims().length < 2) return '__all__';
+  var hijos = entHijos(entPrimActivo()).map(function(x){ return x.id; });
+  if (state.entDrill && state.entDrill !== '__all__' && hijos.indexOf(state.entDrill) >= 0) return state.entDrill;
   return '__all__';
 }
-function setOpeCobrador(cb){ state.opeCobrador = cb; state.opeRuta = '__all__'; renderPanel(); }
-function setOpeRuta(r){ state.opeRuta = r; renderPanel(); }
+function setEntPrim(v){ state.entPrim = v; state.entDrill = '__all__'; renderPanel(); }
+function setEntDrill(v){ state.entDrill = v; renderPanel(); }
 
-/* Agregado de un KPI por-ruta sobre las rutas de un cobrador (mismo criterio ponderado que el KPI por cobrador) */
-function valorRutaAgg(kpi, cobrador, periodKey){
+/* Agregado de un KPI-leaf sobre las hojas de una entidad padre (ponderado) */
+function valorLeafAgg(kpi, parentId, periodKey){
   var cad = cadenciaDeKey(periodKey);
   var wks = (cad === 'semanal') ? [periodKey] : subPeriodos(cad, 'semanal', periodKey);
-  var acc = null;
-  wks.forEach(function(wk){ rutasDeCobrador(cobrador).forEach(function(r){
-    var nd = ndSlot(kpi, kpi.id+'@'+r.id, wk);
-    if (nd){ acc = acc || {num:0, den:0}; acc.num += nd.num; acc.den += nd.den; } }); });
-  return (acc && acc.den > 0) ? (acc.num/acc.den*100) : null;
+  if (esRatio(kpi)){
+    var acc = null;
+    wks.forEach(function(wk){ entHijos(parentId).forEach(function(r){
+      var nd = ndSlot(kpi, kpi.id+'@'+r.id, wk);
+      if (nd){ acc = acc || {num:0, den:0}; acc.num += nd.num; acc.den += nd.den; } }); });
+    return (acc && acc.den > 0) ? (acc.num/acc.den*100) : null;
+  }
+  var tot = null;
+  wks.forEach(function(wk){ entHijos(parentId).forEach(function(r){
+    var v = valSlot(kpi, kpi.id+'@'+r.id, wk); if (v!=null){ tot=(tot||0)+v; } }); });
+  return tot;
 }
-/* Resuelve la entidad mostrada por una tarjeta operativa según la selección de banda */
+/* Resuelve la entidad mostrada por una tarjeta según la selección y el nº de dimensiones */
 function entResuelta(kpi){
-  if (kpi.entidadDerivada) return {tipo:'cobrador', ent:cobradorActivo(), lbl:'Cobrador: '+cobradorNombre(cobradorActivo())};
+  var nd = entDims().length;
+  if (nd === 1){
+    if (kpi.porEntidad) return {tipo:'simple', ent:entPrimActivo(), lbl:entLabel(entLeaf())+': '+entNombre(entLeaf(), entPrimActivo())};
+    return null;
+  }
+  // 2 dimensiones
+  if (kpi.entidadDerivada) return {tipo:'top', ent:entPrimActivo(), lbl:entLabel(entTop())+': '+entNombre(entTop(), entPrimActivo())};
   if (kpi.porEntidad){
-    var ra = rutaActiva(), cb = cobradorActivo();
-    if (ra === '__all__') return {tipo:'rutaAgg', ent:cb, lbl:'Ruta: Todas de '+cobradorNombre(cb)};
-    return {tipo:'ruta', ent:ra, lbl:'Ruta: '+ra};
+    var drill = entDrillActivo(), pid = entPrimActivo();
+    if (drill === '__all__') return {tipo:'leafAgg', ent:pid, lbl:entLabel(entLeaf())+': Todas de '+entNombre(entTop(), pid)};
+    return {tipo:'leaf', ent:drill, lbl:entLabel(entLeaf())+': '+drill};
   }
   return null;
 }
 function valOpe(kpi, er, periodKey){
   if (!er) return valorKpiEnPeriodo(kpi, periodKey);
-  if (er.tipo === 'ruta') return valorEntidad(kpi, er.ent, periodKey);
-  if (er.tipo === 'cobrador') return valorEntidad(kpi, er.ent, periodKey);
-  if (er.tipo === 'rutaAgg') return valorRutaAgg(kpi, er.ent, periodKey);
-  return null;
+  if (er.tipo === 'leafAgg') return valorLeafAgg(kpi, er.ent, periodKey);
+  return valorEntidad(kpi, er.ent, periodKey); /* simple / leaf / top */
 }
 function ultimoValOpe(kpi, er){
   var wks = recentIsoWeeks(27).reverse();
   for (var i=0;i<wks.length;i++){ var v = valOpe(kpi, er, wks[i]); if (v !== null) return {valor:v, periodo:wks[i]}; }
   return {valor:null, periodo:null};
 }
-/* Cobertura (opción A) de la entidad resuelta en el mes de referencia */
 function coberturaResuelta(kpi, er, mesRef){
   var wks = subPeriodos('mensual','semanal', mesRef); var con = 0;
   wks.forEach(function(wk){ if (valOpe(kpi, er, wk) !== null) con++; });
   return {con:con, total:wks.length, parcial:(con > 0 && con < wks.length)};
 }
+/* ¿esta banda tiene KPIs por entidad? */
+function bandaTieneEntidad(nivel){ return tieneEntidades() && KPIS.some(function(k){ return k.nivel===nivel && esEntidad(k); }); }
 
 function renderPanel(){
   for (var k in state.charts) { try { state.charts[k].destroy(); } catch(e){} }
@@ -675,7 +735,7 @@ function renderPanel(){
     var arr = KPIS.filter(function(k){ return k.nivel === b[0]; });
     if (!arr.length) return;
     html += '<div class="band '+b[1]+'"><div class="band-h"><span class="dot"></span>Nivel '+NIVEL_LBL[b[0]]+'</div>';
-    if (b[0] === 'operativo') html += opeSelectorHtml();
+    if (bandaTieneEntidad(b[0])) html += entSelectorHtml();
     html += '<div class="kpi-grid">';
     arr.forEach(function(kpi, idx){
       var full = (arr.length === 1) || (arr.length % 2 === 1 && idx === arr.length-1);
@@ -687,18 +747,23 @@ function renderPanel(){
   setTimeout(function(){ KPIS.forEach(function(kpi){ if (kpi.activo) renderTrendChart(kpi); }); }, 50);
 }
 
-function opeSelectorHtml(){
-  var cb = cobradorActivo(), ra = rutaActiva();
-  var rutas = rutasDeCobrador(cb);
-  var cobOpts = listaCobradores().map(function(c){
-    return '<option value="'+c+'"'+(c===cb?' selected':'')+'>'+cobradorNombre(c)+(cobradorTieneDato(c)?'':' (sin dato)')+'</option>'; }).join('');
-  var rutaOpts = '<option value="__all__"'+(ra==='__all__'?' selected':'')+'>Todas (agregado del cobrador)</option>' +
-    rutas.map(function(r){ return '<option value="'+r.id+'"'+(r.id===ra?' selected':'')+'>'+r.id+'</option>'; }).join('');
-  return '<div class="ope-ctrl">' +
-    '<div class="ent-sel">'+ICO.user+'<span><strong>Cobrador:</strong></span><select onchange="setOpeCobrador(this.value)">'+cobOpts+'</select></div>' +
-    '<div class="ent-sel">'+ICO.bars+'<span><strong>Ruta (drill):</strong></span><select onchange="setOpeRuta(this.value)">'+rutaOpts+'</select></div>' +
-    '<span class="ope-hint">Los KPIs «por Cobrador» muestran el agregado de '+cobradorNombre(cb)+'; los «por Ruta» muestran '+(ra==='__all__'?'el agregado de sus rutas':('la '+ra))+'.</span>' +
-    '</div>';
+function entSelectorHtml(){
+  var nd = entDims().length;
+  var top = entTop(), pid = entPrimActivo();
+  var primOpts = entList(top).map(function(c){
+    return '<option value="'+c.id+'"'+(c.id===pid?' selected':'')+'>'+entNombre(top,c.id)+(entTieneDato(top,c.id)?'':' (sin dato)')+'</option>'; }).join('');
+  var html = '<div class="ope-ctrl">' +
+    '<div class="ent-sel">'+ICO.user+'<span><strong>'+entLabel(top)+':</strong></span><select onchange="setEntPrim(this.value)">'+primOpts+'</select></div>';
+  if (nd >= 2){
+    var leaf = entLeaf(), drill = entDrillActivo();
+    var leafOpts = '<option value="__all__"'+(drill==='__all__'?' selected':'')+'>Todas (agregado)</option>' +
+      entHijos(pid).map(function(r){ return '<option value="'+r.id+'"'+(r.id===drill?' selected':'')+'>'+r.id+'</option>'; }).join('');
+    html += '<div class="ent-sel">'+ICO.bars+'<span><strong>'+entLabel(leaf)+' (drill):</strong></span><select onchange="setEntDrill(this.value)">'+leafOpts+'</select></div>' +
+      '<span class="ope-hint">Los KPIs «por '+entLabel(top)+'» muestran el agregado de '+entNombre(top,pid)+'; los «por '+entLabel(leaf)+'» muestran '+(drill==='__all__'?'el agregado de sus '+entLabel(leaf).toLowerCase()+'s':('la '+drill))+'.</span>';
+  } else {
+    html += '<span class="ope-hint">Selecciona la entidad para ver su resultado y tendencia.</span>';
+  }
+  return html + '</div>';
 }
 
 function brechaHtml(kpi, valor){
@@ -743,9 +808,9 @@ function renderKpiCard(kpi, full){
   else { var uv = ultimoValor(kpi); valor = uv.valor; periodo = uv.periodo; }
   var sem = (valor !== null && kpi.meta != null) ? kpi.semaforo(valor, kpi.meta) : 'g';
   var prev = periodo ? valOpe(kpi, er, navKey(periodo, -1)) : null;
-  var derivadoMarca = er ? (er.tipo !== 'ruta') : esDerivado(kpi);
-  var entTxt = er ? (er.tipo==='ruta' ? er.ent : cobradorNombre(er.ent)) : '';
-  var entLbl = er ? '<span class="ent-tag">'+ICO.user+entTxt+(er.tipo==='rutaAgg'?' · agregado':'')+'</span>' : '';
+  var derivadoMarca = er ? (er.tipo === 'top' || er.tipo === 'leafAgg') : esDerivado(kpi);
+  var entTxt = er ? ((er.tipo==='leaf'||er.tipo==='simple') ? er.ent : entNombre(entTop(), er.ent)) : '';
+  var entLbl = er ? '<span class="ent-tag">'+ICO.user+entTxt+(er.tipo==='leafAgg'?' · agregado':'')+'</span>' : '';
   var parcialChip = '';
   if (er && valor !== null){
     var cov = coberturaResuelta(kpi, er, periodoCerrado('mensual'));
@@ -773,7 +838,7 @@ function renderKpiCard(kpi, full){
 /* ===== Gráficas ===== */
 function hayDatosAnioAnterior(){
   var prev = String(new Date().getFullYear()-1);
-  return Object.keys(state.data).some(function(k){ return k.slice(0,4)===prev && Object.keys(state.data[k]).length>0; });
+  return periodosConDatos().some(function(k){ return k.slice(0,4)===prev && periodoTieneAlgo(k); });
 }
 function setChartView(v){ state.chartView = v;
   localStorage.setItem(CONFIG.storageKey+'_chartview', v); renderPanel(); }
@@ -903,7 +968,7 @@ function renderCaptura(){
   var tardia = periodo !== periodoCerrado(cad);
   var kpisCad = KPIS.filter(function(k){ return k.activo && k.cadencia === cad; });
   var hayEntidad = kpisCad.some(function(k){ return !!k.porEntidad; });
-  if (hayEntidad && !state.capRuta) state.capRuta = CONFIG.entidades.rutas[0].id;
+  if (hayEntidad && !state.capRuta){ var _l=entList(entLeaf()); state.capRuta = _l.length ? _l[0].id : null; }
 
   var html = '<div class="captura-box"><h2>Registro de datos</h2>' +
     '<div class="sub">Captura por cadencia y periodo (ISO 8601 · semana→mes por regla del jueves). Justificación obligatoria; todo queda en bitácora.</div>' +
@@ -919,15 +984,16 @@ function renderCaptura(){
       : '<div class="cap-mode create">✨ Capturando el <strong>periodo cerrado vigente</strong>.</div>');
 
   if (hayEntidad){
-    html += '<div class="ent-sel" style="margin-bottom:14px;font-size:12px;">'+ICO.user+'<span><strong>Ruta:</strong></span><select onchange="setCapRuta(this.value)">' +
-      CONFIG.entidades.rutas.map(function(r){
-        return '<option value="'+r.id+'"'+(r.id===state.capRuta?' selected':'')+'>'+r.id+' · '+cobradorNombre(r.cobrador)+'</option>';
+    html += '<div class="ent-sel" style="margin-bottom:14px;font-size:12px;">'+ICO.user+'<span><strong>' + entLabel(entLeaf()) + ':</strong></span><select onchange="setCapRuta(this.value)">' +
+      entList(entLeaf()).map(function(r){
+        var padre = entPadreDim(entLeaf()) ? (' · '+entNombre(entPadreDim(entLeaf()), r.parent)) : '';
+        return '<option value="'+r.id+'"'+(r.id===state.capRuta?' selected':'')+'>'+r.id+padre+'</option>';
       }).join('') + '</select>' +
-      '<span style="color:var(--muted);">La captura semanal es por ruta; cobrador y proceso se derivan automáticamente.</span></div>';
+      '<span style="color:var(--muted);">La captura del nivel más bajo es por '+entLabel(entLeaf())+'; los niveles superiores se derivan automáticamente.</span></div>';
   }
 
   kpisCad.forEach(function(kpi){
-    var pillTxt = 'Capturando: ' + labelPeriodo(periodo) + (kpi.porEntidad ? ' · Ruta ' + state.capRuta : '');
+    var pillTxt = 'Capturando: ' + labelPeriodo(periodo) + (kpi.porEntidad ? ' · '+entLabel(entLeaf())+' '+state.capRuta : '');
     if (kpi.entidadDerivada){
       html += '<div class="cap-kpi"><h4>'+kpi.nombre+' <span class="cap-pill">Se calcula: '+periodo+'</span></h4>' +
         '<div class="cap-na">⚙ KPI <strong>derivado por entidad</strong> — no se captura. Se agrega automáticamente de las rutas de cada cobrador ('+(kpiById(kpi.entidadDerivada.src)||{}).nombre+').</div></div>';
@@ -1021,10 +1087,10 @@ function renderHistorial(){
   }
   var bar = '<div class="cumpl-bar">';
   meses.forEach(function(m){
-    var data = state.data[m.key];
+    var data = state.data[m.key] || state.historia[m.key];
     var wks = isoWeeksOfMonth(m.key);
     var hayMes = !!data && Object.keys(data).length > 0;
-    var haySem = wks.some(function(w){ return state.data[w] && Object.keys(state.data[w]).length > 0; });
+    var haySem = wks.some(function(w){ return periodoTieneAlgo(w); });
     if (!hayMes && !haySem){ bar += '<div class="cumpl-dot miss" title="'+m.label+' sin entrega">—</div>'; }
     else {
       var late = false;
@@ -1129,6 +1195,7 @@ document.addEventListener('DOMContentLoaded', function(){
   document.getElementById('btn-import-hist').onclick = function(){ document.getElementById('file-hist').click(); };
   document.getElementById('file-config').addEventListener('change', adminInitConfig);
   document.getElementById('file-hist').addEventListener('change', adminImportHist);
+  var bp = document.getElementById('btn-purga-historia'); if (bp) bp.onclick = adminPurgaHistoria;
   document.getElementById('btn-reset-local').onclick = function(){
     if (!confirm('¿Borrar los datos locales de este navegador? Las capturas ya sincronizadas en el servidor NO se pierden.')) return;
     localStorage.removeItem(CONFIG.storageKey + '_data');
@@ -1153,8 +1220,9 @@ document.addEventListener('DOMContentLoaded', function(){
     <p style="font-size:12px;color:var(--muted);">Solo para el administrador del SGC. Las capturas normales no requieren esta sección.</p>
     <div style="display:flex;flex-direction:column;gap:10px;margin:14px 0;">
       <button class="btn btn-primary" id="btn-init-config">1 · Inicializar Config_KPI (subir spec JSON)</button>
-      <button class="btn btn-primary" id="btn-import-hist">2 · Importar histórico (JSON exportado del MAPA anterior)</button>
+      <button class="btn btn-primary" id="btn-import-hist">2 · Cargar historia (JSON, solo lectura — no se sube)</button>
       <button class="btn btn-secondary" id="btn-reset-local">3 · Borrar datos locales de este navegador (el servidor no se toca)</button>
+      <button class="btn btn-secondary" id="btn-purga-historia" style="border-color:#EB002A;color:#EB002A;">4 · Purgar filas históricas ya subidas a la lista (deja solo capturas nuevas)</button>
     </div>
     <div id="admin-status" style="font-size:12px;color:var(--muted);min-height:18px;"></div>
     <input type="file" id="file-config" accept=".json" style="display:none">
@@ -1237,7 +1305,8 @@ var st,ct,ut,lt,dt,ht,pt,gt,ft,mt=function(){function t(e,t,r){this.networkInter
 
 </script>
 <script>
-// ============ MÓDULO M365 (Golden Master v3) ============
+
+// ============ MÓDULO M365 (Golden Master v3 · backend endurecido) ============
 const M365 = {
   clientId: '1885dc9e-feb0-4fbb-af10-a25aee10bc28',
   tenantId: '9da3044a-5908-4df8-b6c7-49179f52d941',
@@ -1274,6 +1343,7 @@ async function msalLogin(){
     document.getElementById('login-screen').classList.add('hidden');
     document.getElementById('app').classList.remove('hidden');
     loadState(); renderWindow();
+    try { await cargarHistoria(); } catch(e) { console.warn('historia', e); }
     try { await syncInit(); } catch(e) { console.error(e); }
     renderPanel(); logBitacora({ accion:'login', cuenta: acct.username });
   } catch(e) {
@@ -1286,12 +1356,19 @@ async function getToken(){
   try { return (await msalApp.acquireTokenSilent({ scopes: M365.scopes, account: acct })).accessToken; }
   catch(e) { return (await msalApp.acquireTokenPopup({ scopes: M365.scopes, account: acct })).accessToken; }
 }
-async function gfetch(path, opts){
+async function gfetchAbs(url, opts){
   var t = await getToken(); opts = opts || {};
   opts.headers = Object.assign({ 'Authorization': 'Bearer ' + t, 'Content-Type': 'application/json' }, opts.headers || {});
-  var r = await fetch('https://graph.microsoft.com/v1.0' + path, opts);
+  var r = await fetch(url, opts);
   if (!r.ok) { var txt = await r.text(); throw new Error('Graph ' + r.status + ': ' + txt.slice(0, 300)); }
   return r.status === 204 ? null : r.json();
+}
+async function gfetch(path, opts){ return gfetchAbs('https://graph.microsoft.com/v1.0' + path, opts); }
+/* Paginación completa (sigue @odata.nextLink) — corrige el tope de 2000 sin paginar */
+async function gfetchAll(path){
+  var url = 'https://graph.microsoft.com/v1.0' + path, out = [];
+  while (url){ var j = await gfetchAbs(url); if (j && j.value) out = out.concat(j.value); url = j && j['@odata.nextLink']; }
+  return out;
 }
 
 var GIDS = null;
@@ -1302,7 +1379,7 @@ async function resolveIds(){
   var lists = await gfetch('/sites/' + site.id + '/lists?$select=id,displayName&$top=200');
   function f(n){ var norm = function(s){ return (s||'').toLowerCase().replace(/[\s_]+/g,''); }; var t = norm(n);
     var l = lists.value.find(function(x){ return norm(x.displayName) === t; });
-    if (!l) throw new Error('Lista no encontrada: ' + n + '. Listas visibles en el sitio: ' + lists.value.map(function(x){ return x.displayName; }).join(' | '));
+    if (!l) throw new Error('Lista no encontrada: ' + n + '. Listas visibles: ' + lists.value.map(function(x){ return x.displayName; }).join(' | '));
     return l.id; }
   GIDS = { site: site.id, capturas: f(M365.listaCapturas), config: f(M365.listaConfig) };
   sessionStorage.setItem('ga_gids_v2', JSON.stringify(GIDS));
@@ -1319,43 +1396,65 @@ async function getColMap(listId){
   cols.value.forEach(function(c){ if (!m[normCol(c.displayName)]) m[normCol(c.displayName)] = c.name; if (!m[normCol(c.name)]) m[normCol(c.name)] = c.name; });
   COLMAPS[listId] = m; return m;
 }
-async function mapFields(listId, fields, requeridos){
-  var m = await getColMap(listId); var out = {}; var faltan = [];
-  Object.keys(fields).forEach(function(k){
-    var i = m[normCol(k)];
-    if (i) out[i] = fields[k];
-    else if (requeridos && requeridos.indexOf(k) >= 0) faltan.push(k);
-  });
+function mapFieldsSync(m, fields, requeridos){
+  var out = {}, faltan = [];
+  Object.keys(fields).forEach(function(k){ var i = m[normCol(k)]; if (i) out[i] = fields[k]; else if (requeridos && requeridos.indexOf(k) >= 0) faltan.push(k); });
   if (faltan.length) throw new Error('Faltan columnas en la lista: ' + faltan.join(', ') + '. Créalas y reintenta.');
   return out;
 }
+async function mapFields(listId, fields, requeridos){ return mapFieldsSync(await getColMap(listId), fields, requeridos); }
 function gv(f, m, k){ var i = m[normCol(k)]; return i ? f[i] : undefined; }
 
+/* ---------- Historia estática (solo lectura) ---------- */
+function mergeHistoria(obj){
+  var todas = (obj && (obj.todasLasCapturas || obj.capturas)) || {};
+  var n = 0;
+  Object.keys(todas).forEach(function(per){
+    if (!state.historia[per]) state.historia[per] = {};
+    Object.keys(todas[per]).forEach(function(slot){ state.historia[per][slot] = todas[per][slot]; n++; });
+  });
+  return n;
+}
+async function cargarHistoria(){
+  if (!CONFIG.historiaUrl) return 0;
+  try {
+    var r = await fetch(CONFIG.historiaUrl, { cache: 'no-store' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    var j = await r.json();
+    var n = mergeHistoria(j);
+    localStorage.setItem(CONFIG.storageKey + '_hist', JSON.stringify(j)); /* búfer offline */
+    return n;
+  } catch(e) {
+    var c = localStorage.getItem(CONFIG.storageKey + '_hist'); /* fallback offline */
+    if (c) { try { return mergeHistoria(JSON.parse(c)); } catch(e2){} }
+    console.warn('No se pudo cargar historia estática:', e.message);
+    return 0;
+  }
+}
+
+/* ---------- Sync (paginado + índice de ítems) ---------- */
+function itemKey(title, periodo){ return title + '|' + periodo; }
 async function syncInit(){
   setSyncMsg('☁ Sincronizando…');
   var ids = await resolveIds();
   var mCfg = await getColMap(ids.config);
-  var cfg = await gfetch('/sites/' + ids.site + '/lists/' + ids.config + '/items?expand=fields&$top=999');
+  var cfg = await gfetchAll('/sites/' + ids.site + '/lists/' + ids.config + '/items?expand=fields&$top=999');
   var n = 0;
-  cfg.value.forEach(function(it){
-    var f = it.fields; if (gv(f, mCfg, 'Proceso') !== CONFIG.proceso) return;
-    var k = kpiById(f.Title); if (!k) return;
-    var meta = gv(f, mCfg, 'Meta');
-    if (meta != null && meta !== '') { k.meta = Number(meta); n++; }
-  });
+  cfg.forEach(function(it){ var f = it.fields; if (gv(f, mCfg, 'Proceso') !== CONFIG.proceso) return;
+    var k = kpiById(f.Title); if (!k) return; var meta = gv(f, mCfg, 'Meta');
+    if (meta != null && meta !== '') { k.meta = Number(meta); n++; } });
   state.configLoaded = n > 0;
   var mCap = await getColMap(ids.capturas);
-  var cap = await gfetch('/sites/' + ids.site + '/lists/' + ids.capturas + '/items?expand=fields&$top=2000');
-  cap.value.forEach(function(it){
-    var f = it.fields;
-    var proc = gv(f, mCap, 'Proceso'), per = gv(f, mCap, 'Periodo');
+  var cap = await gfetchAll('/sites/' + ids.site + '/lists/' + ids.capturas + '/items?expand=fields&$top=999');
+  state.itemIndex = {};
+  cap.forEach(function(it){
+    var f = it.fields; var proc = gv(f, mCap, 'Proceso'), per = gv(f, mCap, 'Periodo');
     if (proc !== CONFIG.proceso || !per || !f.Title) return;
+    state.itemIndex[itemKey(f.Title, per)] = it.id;
     var raw = gv(f, mCap, 'Campos'); var extra = {}; try { extra = raw ? JSON.parse(raw) : {}; } catch(e){}
     if (!state.data[per]) state.data[per] = {};
-    state.data[per][f.Title] = {
-      valores: extra.valores || {}, justificacion: gv(f, mCap, 'Comentario') || '',
-      timestamp: extra.timestamp || it.createdDateTime, entregaTardia: !!extra.entregaTardia, registro: extra.registro || null, _itemId: it.id
-    };
+    state.data[per][f.Title] = { valores: extra.valores || {}, justificacion: gv(f, mCap, 'Comentario') || '',
+      timestamp: extra.timestamp || it.createdDateTime, entregaTardia: !!extra.entregaTardia, registro: extra.registro || null, _itemId: it.id };
   });
   saveStateSilent();
   await flushPending();
@@ -1367,16 +1466,8 @@ async function syncInit(){
 function getPending(){ try { return JSON.parse(localStorage.getItem(CONFIG.storageKey + '_pend') || '[]'); } catch(e){ return []; } }
 function setPending(q){ localStorage.setItem(CONFIG.storageKey + '_pend', JSON.stringify(q)); }
 
-async function pushOne(rec){
-  var ids = await resolveIds();
-  var entry = (state.data[rec.periodo] || {})[rec.kpi]; if (!entry) return;
-  if (!entry._itemId) {
-    var mCap0 = await getColMap(ids.capturas);
-    var ex = await gfetch('/sites/' + ids.site + '/lists/' + ids.capturas + '/items?expand=fields&$top=2000');
-    var hit = ex.value.find(function(it){ var f = it.fields;
-      return f.Title === rec.kpi && gv(f, mCap0, 'Periodo') === rec.periodo && gv(f, mCap0, 'Proceso') === CONFIG.proceso; });
-    if (hit) entry._itemId = hit.id;
-  }
+/* Construye los campos mapeados de una captura para la lista */
+function buildCapFields(rec, entry, mCap){
   var kpi = kpiById(baseId(rec.kpi)); var val = null;
   try { if (kpi && kpi.calcular) val = kpi.calcular(entry.valores); } catch(e){}
   if (val == null && entry.valores && entry.valores.valor != null) val = entry.valores.valor;
@@ -1387,39 +1478,56 @@ async function pushOne(rec){
     Campos: JSON.stringify({ valores: entry.valores, entregaTardia: !!entry.entregaTardia, timestamp: entry.timestamp, registro: entry.registro || null, entidad: entParte(rec.kpi) })
   };
   if (fields.Valor == null) delete fields.Valor;
-  fields = await mapFields(ids.capturas, fields, ['Title', 'Proceso', 'Periodo', 'Campos']);
-  if (entry._itemId) {
-    try {
-      await gfetch('/sites/' + ids.site + '/lists/' + ids.capturas + '/items/' + entry._itemId + '/fields', { method: 'PATCH', body: JSON.stringify(fields) });
-    } catch(e) {
-      var msg = (e.message || '') + '';
-      if (msg.indexOf('404') >= 0 || msg.indexOf('itemNotFound') >= 0) { entry._itemId = null; }
-      else { throw e; }
-    }
-  }
-  if (!entry._itemId) {
-    var r = await gfetch('/sites/' + ids.site + '/lists/' + ids.capturas + '/items', { method: 'POST', body: JSON.stringify({ fields: fields }) });
-    entry._itemId = r.id;
+  return mapFieldsSync(mCap, fields, ['Title', 'Proceso', 'Periodo', 'Campos']);
+}
+
+/* Push por lotes ($batch, 20/req). Devuelve arreglo de recs fallidos. */
+async function syncPushBatch(recs){
+  var ids = await resolveIds(); var mCap = await getColMap(ids.capturas);
+  var fail = [];
+  for (var start = 0; start < recs.length; start += 20){
+    var chunk = recs.slice(start, start + 20);
+    var reqs = [], meta = [];
+    chunk.forEach(function(rec){
+      var entry = (state.data[rec.periodo] || {})[rec.kpi]; if (!entry || entry._historia) return;
+      if (!entry._itemId){ var k = itemKey(rec.kpi, rec.periodo); if (state.itemIndex && state.itemIndex[k]) entry._itemId = state.itemIndex[k]; }
+      var fields;
+      try { fields = buildCapFields(rec, entry, mCap); } catch(e){ fail.push(rec); return; }
+      var id = '' + reqs.length;
+      if (entry._itemId) reqs.push({ id:id, method:'PATCH', url:'/sites/'+ids.site+'/lists/'+ids.capturas+'/items/'+entry._itemId+'/fields', headers:{'Content-Type':'application/json'}, body:fields });
+      else reqs.push({ id:id, method:'POST', url:'/sites/'+ids.site+'/lists/'+ids.capturas+'/items', headers:{'Content-Type':'application/json'}, body:{ fields: fields } });
+      meta.push(rec);
+    });
+    if (!reqs.length) continue;
+    var resp;
+    try { resp = await gfetch('/$batch', { method:'POST', body: JSON.stringify({ requests: reqs }) }); }
+    catch(e){ chunk.forEach(function(r){ fail.push(r); }); continue; }
+    (resp.responses || []).forEach(function(r){
+      var rec = meta[+r.id]; if (!rec) return;
+      if (r.status >= 200 && r.status < 300){
+        var e = (state.data[rec.periodo] || {})[rec.kpi];
+        if (e && r.body && r.body.id){ e._itemId = r.body.id; state.itemIndex[itemKey(rec.kpi, rec.periodo)] = r.body.id; }
+      } else if (r.status === 404){ var e2 = (state.data[rec.periodo]||{})[rec.kpi]; if (e2){ e2._itemId = null; fail.push(rec); } }
+      else { fail.push(rec); }
+    });
   }
   saveStateSilent();
+  return fail;
 }
+/* Compat: push individual (usa índice, sin re-escanear la lista) */
+async function pushOne(rec){ var f = await syncPushBatch([rec]); if (f.length) throw new Error('push falló'); }
 
 async function syncPushPeriodo(periodo, kids){
-  var falladas = 0;
-  for (var i = 0; i < kids.length; i++) {
-    var rec = { periodo: periodo, kpi: kids[i] };
-    try { await pushOne(rec); }
-    catch(e) { console.error(e); var q = getPending(); q.push(rec); setPending(q); falladas++; }
-  }
-  setSyncMsg(falladas ? '⚠ ' + falladas + ' captura(s) sin conexión — se reintentará automáticamente'
-    : '☁ Subido al servidor ' + new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }));
+  var recs = kids.map(function(k){ return { periodo: periodo, kpi: k }; });
+  var fail = await syncPushBatch(recs);
+  if (fail.length){ var q = getPending(); fail.forEach(function(r){ q.push(r); }); setPending(q); }
+  setSyncMsg(fail.length ? '⚠ ' + fail.length + ' captura(s) sin subir — se reintentará' 
+    : '☁ Subido al servidor ' + new Date().toLocaleTimeString('es-MX', { hour:'2-digit', minute:'2-digit' }));
 }
-
 async function flushPending(){
   var q = getPending(); if (!q.length) return;
-  var rest = [];
-  for (var i = 0; i < q.length; i++) { try { await pushOne(q[i]); } catch(e) { rest.push(q[i]); } }
-  setPending(rest);
+  var fail = await syncPushBatch(q);
+  setPending(fail);
 }
 
 // ---------- Admin ----------
@@ -1434,51 +1542,67 @@ async function adminInitConfig(){
   try {
     var spec = await readFile(document.getElementById('file-config'));
     var kpis = spec.kpis || []; var proc = (spec.config && spec.config.proceso) || CONFIG.proceso;
-    var ids = await resolveIds(); var n = 0;
-    for (var i = 0; i < kpis.length; i++) {
-      var k = kpis[i]; if (k.activo === false) continue;
+    var ids = await resolveIds(); var mCfg = await getColMap(ids.config);
+    var recs = kpis.filter(function(k){ return k.activo !== false; });
+    var reqs = recs.map(function(k, i){
       var fac = (k.nivel === 'estrategico') ? '92%' : '90%';
-      var fields = {
-        Title: k.id, Proceso: proc, Nombre: k.nombre || k.id,
-        Nivel: NIVEL_MAP[k.nivel] || k.nivel, Meta: (k.meta != null ? Number(k.meta) : null),
-        RangoVerde: '≥ meta', RangoNaranja: '≥ ' + fac + ' de la meta', RangoRojo: '< ' + fac + ' de la meta',
-        DerivaDe: (k.derivaDe || []).join(','), Agregacion: k.agregacion || '', Frecuencia: k.cadencia || 'mensual'
-      };
-      if (fields.Meta == null) delete fields.Meta;
-      if (!fields.Agregacion) delete fields.Agregacion;
-      fields = await mapFields(ids.config, fields, ['Title', 'Proceso', 'Nombre']);
-      adminMsg('Subiendo ' + (i + 1) + '/' + kpis.length + ': ' + k.id + '…');
-      await gfetch('/sites/' + ids.site + '/lists/' + ids.config + '/items', { method: 'POST', body: JSON.stringify({ fields: fields }) });
-      n++;
+      var fields = { Title: k.id, Proceso: proc, Nombre: k.nombre || k.id, Nivel: NIVEL_MAP[k.nivel] || k.nivel,
+        Meta: (k.meta != null ? Number(k.meta) : null), RangoVerde: '≥ meta', RangoNaranja: '≥ ' + fac + ' de la meta', RangoRojo: '< ' + fac + ' de la meta',
+        DerivaDe: (k.derivaDe || []).join(','), Agregacion: k.agregacion || '', Frecuencia: k.cadencia || 'mensual' };
+      if (fields.Meta == null) delete fields.Meta; if (!fields.Agregacion) delete fields.Agregacion;
+      return { id:''+i, method:'POST', url:'/sites/'+ids.site+'/lists/'+ids.config+'/items', headers:{'Content-Type':'application/json'}, body:{ fields: mapFieldsSync(mCfg, fields, ['Title','Proceso','Nombre']) } };
+    });
+    var ok = 0;
+    for (var s = 0; s < reqs.length; s += 20){ var chunk = reqs.slice(s, s + 20);
+      var resp = await gfetch('/$batch', { method:'POST', body: JSON.stringify({ requests: chunk }) });
+      (resp.responses || []).forEach(function(r){ if (r.status >= 200 && r.status < 300) ok++; });
+      adminMsg('Subiendo Config_KPI ' + ok + '/' + reqs.length + '…');
     }
-    adminMsg('✓ ' + n + ' KPIs cargados en Config_KPI. Presiona ☁ Sincronizar.');
+    adminMsg('✓ ' + ok + ' KPIs cargados en Config_KPI. Presiona ☁ Sincronizar.');
   } catch(e) { adminMsg('⚠ Error: ' + (e.message || e)); }
   document.getElementById('file-config').value = '';
 }
 
+/* Botón 2 repropósito: cargar historia estática desde archivo local (solo lectura, NO se sube) */
 async function adminImportHist(){
   try {
     var exp = await readFile(document.getElementById('file-hist'));
-    var todas = exp.todasLasCapturas || exp.capturas || {};
-    var recs = [];
-    Object.keys(todas).forEach(function(per){
-      Object.keys(todas[per]).forEach(function(kid){
-        if (!state.data[per]) state.data[per] = {};
-        if (!state.data[per][kid] || !state.data[per][kid]._itemId) {
-          state.data[per][kid] = todas[per][kid];
-          recs.push({ periodo: per, kpi: kid });
-        }
-      });
-    });
-    saveStateSilent();
-    adminMsg('Subiendo ' + recs.length + ' capturas históricas…');
-    var ok = 0;
-    for (var i = 0; i < recs.length; i++) { try { await pushOne(recs[i]); ok++; } catch(e) { var q = getPending(); q.push(recs[i]); setPending(q); } }
-    adminMsg('✓ ' + ok + ' de ' + recs.length + ' capturas subidas. Presiona ☁ Sincronizar.');
+    var n = mergeHistoria(exp);
+    localStorage.setItem(CONFIG.storageKey + '_hist', JSON.stringify(exp));
+    adminMsg('✓ Historia cargada localmente (' + n + ' registros, solo lectura). No se sube a la lista.');
     renderPanel();
   } catch(e) { adminMsg('⚠ Error: ' + (e.message || e)); }
   document.getElementById('file-hist').value = '';
 }
+
+/* Purga: elimina de Capturas_KPI las filas de este proceso que ahora sirve la historia estática */
+async function adminPurgaHistoria(){
+  try {
+    if (!Object.keys(state.historia).length){ adminMsg('Primero carga la historia (para saber qué purgar).'); return; }
+    var ids = await resolveIds(); var mCap = await getColMap(ids.capturas);
+    adminMsg('Buscando filas históricas en la lista…');
+    var cap = await gfetchAll('/sites/' + ids.site + '/lists/' + ids.capturas + '/items?expand=fields&$top=999');
+    var borrar = [];
+    cap.forEach(function(it){ var f = it.fields; if (gv(f, mCap, 'Proceso') !== CONFIG.proceso) return;
+      var per = gv(f, mCap, 'Periodo'), title = f.Title;
+      if (per && title && state.historia[per] && state.historia[per][title]) borrar.push({ id: it.id, per: per, title: title }); });
+    if (!borrar.length){ adminMsg('No hay filas históricas que purgar (0).'); return; }
+    if (!confirm('Se eliminarán ' + borrar.length + ' filas históricas del proceso ' + CONFIG.proceso + ' en Capturas_KPI (las que ahora sirve la historia estática, solo lectura). Las capturas nuevas NO se tocan. ¿Continuar?')){ adminMsg('Cancelado.'); return; }
+    var done = 0, fail = 0;
+    for (var s = 0; s < borrar.length; s += 20){ var chunk = borrar.slice(s, s + 20);
+      var reqs = chunk.map(function(b, i){ return { id:''+i, method:'DELETE', url:'/sites/'+ids.site+'/lists/'+ids.capturas+'/items/'+b.id }; });
+      var resp = await gfetch('/$batch', { method:'POST', body: JSON.stringify({ requests: reqs }) });
+      (resp.responses || []).forEach(function(r){ var b = chunk[+r.id];
+        if ((r.status >= 200 && r.status < 300) || r.status === 404){ done++;
+          if (b && state.data[b.per]) { delete state.data[b.per][b.title]; if (state.itemIndex) delete state.itemIndex[itemKey(b.title, b.per)]; }
+        } else fail++; });
+      adminMsg('Purgando ' + done + '/' + borrar.length + '…');
+    }
+    saveStateSilent(); renderPanel();
+    adminMsg('✓ Purga: ' + done + ' filas eliminadas' + (fail ? (' · ' + fail + ' con error') : '') + '. La historia sigue disponible (estática, solo lectura).');
+  } catch(e) { adminMsg('⚠ Error purga: ' + (e.message || e)); }
+}
+
 </script>
 </body>
 </html>
