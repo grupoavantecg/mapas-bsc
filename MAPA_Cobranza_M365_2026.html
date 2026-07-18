@@ -1466,6 +1466,35 @@ async function syncInit(){
 function getPending(){ try { return JSON.parse(localStorage.getItem(CONFIG.storageKey + '_pend') || '[]'); } catch(e){ return []; } }
 function setPending(q){ localStorage.setItem(CONFIG.storageKey + '_pend', JSON.stringify(q)); }
 
+/* ---------- Throttling (429) resiliente ---------- */
+function sleep(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+async function gbatchRaw(reqs){
+  var t = await getToken();
+  var r = await fetch('https://graph.microsoft.com/v1.0/$batch', { method:'POST',
+    headers:{ 'Authorization':'Bearer '+t, 'Content-Type':'application/json' }, body: JSON.stringify({ requests: reqs }) });
+  if (r.status === 429 || r.status === 503){ var ra = parseInt(r.headers.get('Retry-After')||'20',10); return { throttled:true, retryAfter:(isNaN(ra)?20:ra) }; }
+  if (!r.ok){ var tx = await r.text(); throw new Error('Graph '+r.status+': '+tx.slice(0,200)); }
+  var j = await r.json(); return { throttled:false, responses: (j && j.responses) || [] };
+}
+/* Ejecuta un lote respetando 429 a nivel batch y por respuesta. Devuelve {id: response}. */
+async function gbatch(reqs, prog){
+  var pend = reqs.slice(), out = {}, intento = 0;
+  while (pend.length && intento < 25){
+    intento++;
+    var res = await gbatchRaw(pend);
+    if (res.throttled){ if (prog) prog('⏳ Throttling: espera ' + res.retryAfter + 's…'); await sleep((res.retryAfter + 1) * 1000); continue; }
+    var reintentar = [], maxWait = 0;
+    (res.responses || []).forEach(function(rp){
+      if (rp.status === 429 || rp.status === 503){
+        var o = pend.find(function(q){ return q.id === rp.id; }); if (o) reintentar.push(o);
+        var ra = rp.headers && (rp.headers['Retry-After'] || rp.headers['retry-after']); ra = parseInt(ra, 10); if (!isNaN(ra)) maxWait = Math.max(maxWait, ra);
+      } else out[rp.id] = rp;
+    });
+    if (reintentar.length){ var w = maxWait || 20; if (prog) prog('⏳ ' + reintentar.length + ' en espera ' + w + 's (throttling)…'); await sleep((w + 1) * 1000); pend = reintentar; }
+    else pend = [];
+  }
+  return out;
+}
 /* Construye los campos mapeados de una captura para la lista */
 function buildCapFields(rec, entry, mCap){
   var kpi = kpiById(baseId(rec.kpi)); var val = null;
@@ -1500,16 +1529,17 @@ async function syncPushBatch(recs){
     });
     if (!reqs.length) continue;
     var resp;
-    try { resp = await gfetch('/$batch', { method:'POST', body: JSON.stringify({ requests: reqs }) }); }
+    try { resp = await gbatch(reqs, setSyncMsg); }
     catch(e){ chunk.forEach(function(r){ fail.push(r); }); continue; }
-    (resp.responses || []).forEach(function(r){
-      var rec = meta[+r.id]; if (!rec) return;
+    Object.keys(resp).forEach(function(id){
+      var r = resp[id]; var rec = meta[+id]; if (!rec) return;
       if (r.status >= 200 && r.status < 300){
         var e = (state.data[rec.periodo] || {})[rec.kpi];
         if (e && r.body && r.body.id){ e._itemId = r.body.id; state.itemIndex[itemKey(rec.kpi, rec.periodo)] = r.body.id; }
       } else if (r.status === 404){ var e2 = (state.data[rec.periodo]||{})[rec.kpi]; if (e2){ e2._itemId = null; fail.push(rec); } }
       else { fail.push(rec); }
     });
+    await sleep(400);
   }
   saveStateSilent();
   return fail;
@@ -1554,9 +1584,9 @@ async function adminInitConfig(){
     });
     var ok = 0;
     for (var s = 0; s < reqs.length; s += 20){ var chunk = reqs.slice(s, s + 20);
-      var resp = await gfetch('/$batch', { method:'POST', body: JSON.stringify({ requests: chunk }) });
-      (resp.responses || []).forEach(function(r){ if (r.status >= 200 && r.status < 300) ok++; });
-      adminMsg('Subiendo Config_KPI ' + ok + '/' + reqs.length + '…');
+      var resp = await gbatch(chunk, adminMsg);
+      Object.keys(resp).forEach(function(id){ if (resp[id].status >= 200 && resp[id].status < 300) ok++; });
+      adminMsg('Subiendo Config_KPI ' + ok + '/' + reqs.length + '…'); await sleep(400);
     }
     adminMsg('✓ ' + ok + ' KPIs cargados en Config_KPI. Presiona ☁ Sincronizar.');
   } catch(e) { adminMsg('⚠ Error: ' + (e.message || e)); }
@@ -1591,12 +1621,12 @@ async function adminPurgaHistoria(){
     var done = 0, fail = 0;
     for (var s = 0; s < borrar.length; s += 20){ var chunk = borrar.slice(s, s + 20);
       var reqs = chunk.map(function(b, i){ return { id:''+i, method:'DELETE', url:'/sites/'+ids.site+'/lists/'+ids.capturas+'/items/'+b.id }; });
-      var resp = await gfetch('/$batch', { method:'POST', body: JSON.stringify({ requests: reqs }) });
-      (resp.responses || []).forEach(function(r){ var b = chunk[+r.id];
+      var resp = await gbatch(reqs, function(m){ adminMsg('Purgando ' + done + '/' + borrar.length + ' · ' + m); });
+      Object.keys(resp).forEach(function(id){ var r = resp[id]; var b = chunk[+id];
         if ((r.status >= 200 && r.status < 300) || r.status === 404){ done++;
           if (b && state.data[b.per]) { delete state.data[b.per][b.title]; if (state.itemIndex) delete state.itemIndex[itemKey(b.title, b.per)]; }
         } else fail++; });
-      adminMsg('Purgando ' + done + '/' + borrar.length + '…');
+      saveStateSilent(); adminMsg('Purgando ' + done + '/' + borrar.length + '…'); await sleep(500);
     }
     saveStateSilent(); renderPanel();
     adminMsg('✓ Purga: ' + done + ' filas eliminadas' + (fail ? (' · ' + fail + ' con error') : '') + '. La historia sigue disponible (estática, solo lectura).');
