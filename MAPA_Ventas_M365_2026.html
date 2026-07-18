@@ -445,6 +445,36 @@ function subPeriodos(derivCad, srcCad, periodKey){
   return [periodKey];
 }
 function esRatio(kpi){ return !!(kpi.campos && kpi.campos.length>=2 && (kpi.unidad||'%')==='%'); }
+/* ===== Periodo en curso / meta a la fecha (prorrateo) ===== */
+function diaHoyUTC(){ var n = new Date(); return Date.UTC(n.getFullYear(), n.getMonth(), n.getDate()); }
+function inicioPeriodo(key){ var c = cadenciaDeKey(key);
+  if (c === 'semanal'){ var m = isoWeekMonday(key); return Date.UTC(m.getUTCFullYear(), m.getUTCMonth(), m.getUTCDate()); }
+  if (c === 'trimestral'){ var y = +key.slice(0,4), q = +key.slice(6); return Date.UTC(y, (q-1)*3, 1); }
+  var y2 = +key.slice(0,4), mo = +key.slice(5,7); return Date.UTC(y2, mo-1, 1); }
+function finPeriodo(key){ var c = cadenciaDeKey(key);
+  if (c === 'semanal'){ var m = isoWeekMonday(key); return Date.UTC(m.getUTCFullYear(), m.getUTCMonth(), m.getUTCDate()+6); }
+  if (c === 'trimestral'){ var y = +key.slice(0,4), q = +key.slice(6); return Date.UTC(y, q*3, 0); }
+  var y2 = +key.slice(0,4), mo = +key.slice(5,7); return Date.UTC(y2, mo, 0); }
+function enCurso(key){ if (!key) return false; var h = diaHoyUTC(); return h >= inicioPeriodo(key) && h <= finPeriodo(key); }
+function fraccionTranscurrida(key){
+  var c = cadenciaDeKey(key), h = diaHoyUTC();
+  if (h >= finPeriodo(key)) return 1; if (h < inicioPeriodo(key)) return 0;
+  if (c === 'mensual' || c === 'trimestral'){
+    var wks = (c === 'mensual') ? isoWeeksOfMonth(key)
+      : (function(){ var arr = []; mesesDeTrimestre(key).forEach(function(m){ arr = arr.concat(isoWeeksOfMonth(m)); }); return arr; })();
+    if (!wks.length) return 1;
+    var cerr = 0; wks.forEach(function(w){ if (finPeriodo(w) <= h) cerr++; });
+    return cerr / wks.length;
+  }
+  if (c === 'anual'){ var y = +key.slice(0,4), cm = 0; for (var mo=1; mo<=12; mo++){ if (Date.UTC(y, mo, 0) <= h) cm++; } return cm/12; }
+  var dias = (h - inicioPeriodo(key)) / 86400000 + 1; return Math.max(0, Math.min(1, dias/7));
+}
+/* Meta ajustada al periodo: prorrateada si está EN CURSO y el KPI es acumulativo (no ratio). */
+function metaEfectiva(kpi, periodo){
+  if (kpi.meta == null) return null;
+  if (periodo && enCurso(periodo) && !esRatio(kpi)) return kpi.meta * fraccionTranscurrida(periodo);
+  return kpi.meta;
+}
 function aggDe(kpi){ return kpi.agregacion || (esRatio(kpi) ? 'ponderado' : 'promedio'); }
 function clon(o){ var r={}; for (var k in o) r[k]=o[k]; return r; }
 
@@ -753,12 +783,13 @@ function entSelectorHtml(){
   return html + '</div>';
 }
 
-function brechaHtml(kpi, valor){
-  if (valor == null || kpi.meta == null) return '<div class="ch-val" style="color:var(--gris);">—</div>';
+function brechaHtml(kpi, valor, meta){
+  if (meta == null) meta = kpi.meta;
+  if (valor == null || meta == null) return '<div class="ch-val" style="color:var(--gris);">—</div>';
   var sentido = kpi.sentido || 'max';
-  var ok = sentido === 'max' ? valor >= kpi.meta : valor <= kpi.meta;
+  var ok = sentido === 'max' ? valor >= meta : valor <= meta;
   if (ok) return '<div class="ch-val" style="color:#1F9D6B;">✓ Meta</div>';
-  var d = sentido === 'max' ? (kpi.meta - valor) : (valor - kpi.meta);
+  var d = sentido === 'max' ? (meta - valor) : (valor - meta);
   var t = (kpi.unidad === '$') ? fmtVal(kpi, d) : fmt1(d) + (kpi.unidad === '%' ? '%' : '');
   return '<div class="ch-val" style="color:#EB002A;">−' + t + '</div>';
 }
@@ -793,8 +824,15 @@ function renderKpiCard(kpi, full){
   var valor, periodo;
   if (er){ var uo = ultimoValOpe(kpi, er); valor = uo.valor; periodo = uo.periodo; }
   else { var uv = ultimoValor(kpi); valor = uv.valor; periodo = uv.periodo; }
-  var sem = (valor !== null && kpi.meta != null) ? kpi.semaforo(valor, kpi.meta) : 'g';
+  var metaEf = metaEfectiva(kpi, periodo);
+  var sem = (valor !== null && metaEf != null) ? kpi.semaforo(valor, metaEf) : 'g';
   var prev = periodo ? valOpe(kpi, er, navKey(periodo, -1)) : null;
+  var cursoChip = '';
+  if (periodo && enCurso(periodo)){
+    var fr = Math.round(fraccionTranscurrida(periodo)*100);
+    var metaTxt = (metaEf != null && !esRatio(kpi)) ? ' · meta a la fecha ' + fmtVal(kpi, metaEf) : '';
+    cursoChip = '<span style="background:#fff7e6;color:#a16207;font-size:10px;font-weight:700;padding:3px 8px;border-radius:12px;" title="Periodo en curso: transcurrido '+fr+'%'+(metaTxt?'; el sem\u00e1foro y la brecha comparan contra la meta prorrateada a la fecha':'')+'">\u23f3 En curso '+fr+'%'+metaTxt+'</span>';
+  }
   var derivadoMarca = er ? (er.tipo === 'top' || er.tipo === 'leafAgg') : esDerivado(kpi);
   var entTxt = er ? ((er.tipo==='leaf'||er.tipo==='simple') ? er.ent : entNombre(entTop(), er.ent)) : '';
   var entLbl = er ? '<span class="ent-tag">'+ICO.user+entTxt+(er.tipo==='leafAgg'?' · agregado':'')+'</span>' : '';
@@ -803,7 +841,7 @@ function renderKpiCard(kpi, full){
     var cov = coberturaResuelta(kpi, er, periodoCerrado('mensual'));
     if (cov.parcial) parcialChip = '<span class="parcial-chip" title="Con captura semanal en '+cov.con+' de '+cov.total+' semanas del mes de referencia">◐ Actividad parcial '+cov.con+'/'+cov.total+'</span>';
   }
-  var marca = derivadoMarca ? '⚙ Se calcula' : (periodo ? '✓ Capturado' : '');
+  var marca = (periodo && enCurso(periodo)) ? '⏳ En curso' : (derivadoMarca ? '⚙ Se calcula' : (periodo ? '✓ Capturado' : ''));
   var laneInfo = periodo ? (labelPeriodo(periodo)+' · '+marca) : (er ? 'Sin captura semanal por ruta aún' : 'sin datos');
   return '<div class="kpi-card v3 sem-'+sem+(full?' full':'')+'">' +
     '<div class="card-head"><div class="ch-left">' +
@@ -812,11 +850,11 @@ function renderKpiCard(kpi, full){
       '<div class="ch-right">' +
         '<div class="ch-num"><div class="ch-lbl">Resultado</div><div class="ch-val sem-t-'+sem+'">'+fmtVal(kpi, valor)+'</div></div>' +
         '<div class="ch-num"><div class="ch-lbl">Meta</div><div class="ch-val">'+(kpi.meta==null?'—':'≥ '+fmtVal(kpi, kpi.meta))+'</div></div>' +
-        '<div class="ch-num"><div class="ch-lbl">Brecha</div>'+brechaHtml(kpi, valor)+'</div>' +
+        '<div class="ch-num"><div class="ch-lbl">Brecha</div>'+brechaHtml(kpi, valor, metaEf)+'</div>' +
       '</div></div>' +
     badgeRow(kpi) +
     '<div class="chip-lane"><span style="font-size:10px;color:var(--muted);margin-right:auto;">'+laneInfo+'</span>' +
-      parcialChip + flechaTendencia(kpi, valor, prev) +
+      cursoChip + parcialChip + flechaTendencia(kpi, valor, prev) +
       '<span class="status-chip '+sem+'">'+STATUS_LBL[sem]+'</span></div>' +
     '<div class="kpi-trend-box" id="trend-'+kpi.id+'"><canvas id="canvas-'+kpi.id+'"></canvas></div>' +
   '</div>';
@@ -890,26 +928,26 @@ function renderTrendChart(kpi){
   if (esEntidad(kpi)){
     var er = entResuelta(kpi);
     if (kpi.cadencia === 'semanal'){
-      recentIsoWeeks(13).forEach(function(wk){ serie.push({label:'S'+(+wk.slice(6)), value:valOpe(kpi, er, wk)}); });
+      recentIsoWeeks(13).forEach(function(wk){ serie.push({label:'S'+(+wk.slice(6)), value:valOpe(kpi, er, wk), key:wk}); });
     } else {
       candidatePeriods(kpi.cadencia).slice(0,8).reverse().forEach(function(pk){
         var lbl = (kpi.cadencia==='trimestral') ? ('Q'+pk.slice(6)+' '+pk.slice(2,4)) : pk.slice(5);
-        serie.push({label:lbl, value:valOpe(kpi, er, pk)});
+        serie.push({label:lbl, value:valOpe(kpi, er, pk), key:pk});
       });
     }
   } else if (kpi.cadencia === 'semanal'){
-    recentIsoWeeks(13).forEach(function(wk){ serie.push({label:'S'+(+wk.slice(6)), value:valorKpiEnPeriodo(kpi, wk)}); });
+    recentIsoWeeks(13).forEach(function(wk){ serie.push({label:'S'+(+wk.slice(6)), value:valorKpiEnPeriodo(kpi, wk), key:wk}); });
   } else {
     if (state.chartView === 'yoy'){ renderYoYChart(kpi, box); return; }
     if (kpi.cadencia === 'trimestral'){
       var qs = candidatePeriods('trimestral').slice(0,8).reverse();
-      qs.forEach(function(q){ serie.push({label:'Q'+q.slice(6)+' '+q.slice(2,4), value:valorKpiEnPeriodo(kpi, q)}); });
+      qs.forEach(function(q){ serie.push({label:'Q'+q.slice(6)+' '+q.slice(2,4), value:valorKpiEnPeriodo(kpi, q), key:q}); });
     } else {
       var hoy = new Date();
       for (var i = 11; i >= 0; i--){
         var d = new Date(hoy.getFullYear(), hoy.getMonth() - i - 1, 15);
         var key = d.getFullYear()+'-'+pad2(d.getMonth()+1);
-        serie.push({label:d.toLocaleDateString('es-MX',{month:'short'}).slice(0,3), value:valorKpiEnPeriodo(kpi, key)});
+        serie.push({label:d.toLocaleDateString('es-MX',{month:'short'}).slice(0,3), value:valorKpiEnPeriodo(kpi, key), key:key});
       }
     }
   }
@@ -919,14 +957,23 @@ function renderTrendChart(kpi){
     return;
   }
   var canvas = document.getElementById('canvas-'+kpi.id); if (!canvas) return;
+  var idxCurso = -1;
+  serie.forEach(function(s,i){ if (s.key && enCurso(s.key) && s.value !== null) idxCurso = i; });
+  var metaLine = serie.map(function(s){ return (s.key ? metaEfectiva(kpi, s.key) : kpi.meta); });
+  var ptBg = serie.map(function(s,i){ return i === idxCurso ? '#ffffff' : '#003A5D'; });
+  var ptBd = serie.map(function(s,i){ return i === idxCurso ? '#E6912B' : '#003A5D'; });
+  var ptBw = serie.map(function(s,i){ return i === idxCurso ? 2.5 : 1; });
+  var ptR  = serie.map(function(s,i){ return i === idxCurso ? 5 : 4; });
   state.charts[kpi.id] = new Chart(canvas.getContext('2d'), {
     type:'line',
-    data:{ labels: serie.map(function(s){return s.label;}),
+    data:{ labels: serie.map(function(s){ return s.label + (idxCurso>=0 && s === serie[idxCurso] ? ' •' : ''); }),
       datasets:[
-        {label:kpi.nombre, data:serie.map(function(s){return s.value;}), borderColor:'#003A5D', backgroundColor:'rgba(0,58,93,.10)', borderWidth:2.5, pointRadius:4, pointHoverRadius:6, tension:.3, fill:true, spanGaps:true},
-        {label:'Meta', data:serie.map(function(){return kpi.meta;}), borderColor:'#EB002A', borderDash:[5,4], borderWidth:2, pointRadius:0, fill:false}
+        {label:kpi.nombre, data:serie.map(function(s){return s.value;}), borderColor:'#003A5D', backgroundColor:'rgba(0,58,93,.10)', borderWidth:2.5,
+         pointRadius:ptR, pointHoverRadius:6, pointBackgroundColor:ptBg, pointBorderColor:ptBd, pointBorderWidth:ptBw, tension:.3, fill:true, spanGaps:true,
+         segment:{ borderDash:function(ctx){ return ctx.p1DataIndex === idxCurso ? [6,4] : undefined; } }},
+        {label:'Meta', data:metaLine, borderColor:'#EB002A', borderDash:[5,4], borderWidth:2, pointRadius:0, fill:false}
       ]},
-    options: chartOptions(kpi, serie.map(function(x){return x.value;}))
+    options: chartOptions(kpi, serie.map(function(x){return x.value;}).concat(metaLine))
   });
 }
 /* ===== Registrar Datos · selector de cadencia + periodo (+ entidad) ===== */
