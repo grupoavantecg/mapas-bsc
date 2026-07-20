@@ -248,7 +248,7 @@ const CONFIG = { proceso:'Cobranza', procesoCode:'cobranza', eje:'Gestión del C
     'control@casamobel.mx':{id:'LAOD', procesos:['Operaciones','Gestión de la Infraestructura','Gestión de los Recursos Materiales y Servicios']},
     'administracion@casamobel.mx':{id:'EBG', procesos:['Gestión de la Tecnología']},
     'desarrollohumano@casamobel.mx':{id:'ISC', procesos:['Desarrollo Humano','Gestión del Talento','Gestión del Ambiente de Trabajo']},
-    'mzermeno@casamobel.mx':{id:'MZG', procesos:['Mejora Continua','Evaluación del Desempeño']},
+    'mzermeno@casamobel.mx':{id:'MZG', procesos:'*', soloLectura:true},
     'coordinacion@casamobel.mx':{id:'AGG', procesos:['Innovación y Desarrollo de Productos y Servicios','Planeación de la Demanda']},
     'almacen@casamobel.mx':{id:'EAAP', procesos:['Almacén']}
   },
@@ -339,8 +339,8 @@ function fmtVal(kpi, v){ if (v == null) return '—';
   if ((kpi.unidad||'%') === '$') return '$' + Number(v).toLocaleString('es-MX',{maximumFractionDigits:0});
   return fmt1(v) + (kpi.unidad === '%' ? '%' : (' ' + (kpi.unidad||''))); }
 
-let state = { authenticated:false, data:{}, historia:{}, bitacora:[], currentPeriod:null, windowStatus:null, charts:{},
-  userId:null, isAdmin:false, entSel:{}, capCad:null, capPer:{} };
+let state = { authenticated:false, data:{}, historia:{}, externo:{}, bitacora:[], currentPeriod:null, windowStatus:null, charts:{},
+  userId:null, isAdmin:false, observador:false, entSel:{}, capCad:null, capPer:{} };
 state.chartView = localStorage.getItem(CONFIG.storageKey+'_chartview') || '12m';
 
 function resolveUser(email){
@@ -348,14 +348,58 @@ function resolveUser(email){
   var u = CONFIG.usuarios[e];
   if (!u) return { id:e, permitido:false, admin:false };
   var permitido = u.admin || u.procesos === '*' || (u.procesos||[]).indexOf(CONFIG.proceso) >= 0;
-  return { id:u.id, permitido:permitido, admin:!!u.admin };
+  return { id:u.id, permitido:permitido, admin:!!u.admin, observador:!!u.soloLectura };
 }
 
 /* Lectura a través de historia estática (solo lectura) + buffer vivo. El vivo prevalece. */
 function cap(p, s){ var d = state.data[p] && state.data[p][s]; if (d) return d; var h = state.historia[p] && state.historia[p][s]; return h || undefined; }
+
+/* ===== Lectura cruzada entre procesos (solo lectura) =====
+   Las filas de Capturas_KPI de los procesos listados en CONFIG.procesosExternos se guardan
+   en state.externo y NUNCA entran a state.data, state.itemIndex ni al buffer de push/purga.
+   Un KPI con `fuentes` se calcula combinando partes locales y externas; no es capturable. */
+function capExt(proceso, periodo, slot){
+  var p = state.externo[proceso]; if (!p) return undefined;
+  var d = p[periodo]; return d ? d[slot] : undefined;
+}
+function esCruzado(kpi){ return !!(kpi.fuentes && kpi.fuentes.length); }
+function valorFuenteEnPeriodo(f, cad, periodKey){
+  /* devuelve el promedio de la fuente en los subperiodos que cubre periodKey */
+  var srcCad = f.cadencia || cad;
+  var vals = [];
+  subPeriodos(cad, srcCad, periodKey).forEach(function(pk){
+    var v = null;
+    if (f.local){ var k = kpiById(f.local); if (k) v = valorKpiEnPeriodo(k, pk); }
+    else if (f.externo){ var d = capExt(f.externo.proceso, pk, f.externo.slot);
+      if (d) { try { v = f.externo.calcular(d.valores); } catch(e){ v = null; } } }
+    if (v !== null && !isNaN(v)) vals.push(v);
+  });
+  if (!vals.length) return null;
+  return vals.reduce(function(a,b){return a+b;},0)/vals.length;
+}
+function valorCruzado(kpi, periodKey){
+  var tot = 0, pesoOk = 0;
+  for (var i=0;i<kpi.fuentes.length;i++){
+    var f = kpi.fuentes[i];
+    var v = valorFuenteEnPeriodo(f, kpi.cadencia, periodKey);
+    if (v === null) return null; /* si falta una parte, el KPI no se muestra a medias */
+    tot += v * (f.peso != null ? f.peso : 1); pesoOk += (f.peso != null ? f.peso : 1);
+  }
+  return pesoOk > 0 ? tot : null;
+}
+function fuentesFaltantes(kpi, periodKey){
+  var out = [];
+  (kpi.fuentes||[]).forEach(function(f){
+    if (valorFuenteEnPeriodo(f, kpi.cadencia, periodKey) === null){
+      out.push(f.externo ? (f.etiqueta || f.externo.proceso) : (f.etiqueta || f.local));
+    }
+  });
+  return out;
+}
 function periodosConDatos(){ var o={}; var p; for (p in state.data) o[p]=1; for (p in state.historia) o[p]=1; return Object.keys(o); }
 function periodoTieneAlgo(p){ return (state.data[p] && Object.keys(state.data[p]).length>0) || (state.historia[p] && Object.keys(state.historia[p]).length>0); }
 function loadState(){ var s = localStorage.getItem(CONFIG.storageKey+'_data'); if (s) state.data = JSON.parse(s);
+  var x = localStorage.getItem(CONFIG.storageKey+'_ext'); if (x) { try { state.externo = JSON.parse(x); } catch(e){} }
   var l = localStorage.getItem(CONFIG.storageKey+'_log'); if (l) state.bitacora = JSON.parse(l); }
 function saveState(){ localStorage.setItem(CONFIG.storageKey+'_data', JSON.stringify(state.data));
   localStorage.setItem(CONFIG.storageKey+'_log', JSON.stringify(state.bitacora)); flashAutosave(); }
@@ -629,6 +673,7 @@ function valorDerivado(kpi, periodKey, seen){
   return vals.reduce(function(a,b){return a+b;},0)/vals.length;
 }
 function valorKpiEnPeriodo(kpi, periodKey, seen){
+  if (esCruzado(kpi)) return valorCruzado(kpi, periodKey);
   if (kpi.porEntidad){
     if (kpi.tipoEspecial) return null; /* informativo por entidad: no agrega a proceso */
     if (esRatio(kpi)){ var nd = numDenEnPeriodo(kpi, periodKey); return (nd && nd.den>0) ? (nd.num/nd.den*100) : null; }
@@ -859,7 +904,7 @@ function renderKpiCard(kpi, full){
     var metaTxt = (metaEf != null && metaEf !== kpi.meta) ? ' · meta a la fecha ' + fmtVal(kpi, metaEf) : '';
     cursoChip = '<span style="background:#fff7e6;color:#a16207;font-size:10px;font-weight:700;padding:3px 8px;border-radius:12px;" title="Periodo en curso: transcurrido '+fr+'%'+(metaTxt?'; el sem\u00e1foro y la brecha comparan contra la meta prorrateada a la fecha':'')+'">\u23f3 En curso '+fr+'%'+metaTxt+'</span>';
   }
-  var derivadoMarca = er ? (er.tipo === 'top' || er.tipo === 'leafAgg') : esDerivado(kpi);
+  var derivadoMarca = er ? (er.tipo === 'top' || er.tipo === 'leafAgg') : (esDerivado(kpi) || esCruzado(kpi));
   var entTxt = er ? ((er.tipo==='leaf'||er.tipo==='simple') ? er.ent : entNombre(entTop(), er.ent)) : '';
   var entLbl = er ? '<span class="ent-tag">'+ICO.user+entTxt+(er.tipo==='leafAgg'?' · agregado':'')+'</span>' : '';
   var parcialChip = '';
@@ -869,6 +914,12 @@ function renderKpiCard(kpi, full){
   }
   var marca = (periodo && enCurso(periodo)) ? '⏳ En curso' : (derivadoMarca ? '⚙ Se calcula' : (periodo ? '✓ Capturado' : ''));
   var laneInfo = periodo ? (labelPeriodo(periodo)+' · '+marca) : (er ? 'Sin captura semanal por ruta aún' : 'sin datos');
+  if (esCruzado(kpi)){
+    var falta = periodo ? [] : fuentesFaltantes(kpi, periodoCerrado(kpi.cadencia));
+    laneInfo = falta.length
+      ? 'Esperando captura de: ' + falta.join(' · ')
+      : (periodo ? labelPeriodo(periodo)+' · ⚙ Se calcula entre procesos' : laneInfo);
+  }
   return '<div class="kpi-card v3 sem-'+sem+(full?' full':'')+'">' +
     '<div class="card-head"><div class="ch-left">' +
       '<span class="nivel '+kpi.nivel+'">'+NIVEL_LBL[kpi.nivel]+'</span>' +
@@ -907,7 +958,7 @@ function ejeY(kpi, vals){
   var mn = Math.min.apply(null, nums), mx = Math.max.apply(null, nums);
   var margen = Math.max((mx-mn)*0.10, (kpi.unidad==='$') ? mx*0.05 : 2);
   var lo = mn - margen, hi = mx + margen;
-  if (kpi.unidad !== '$'){ lo = Math.max(0, Math.floor(lo)); hi = Math.ceil(hi); }
+  if (kpi.unidad !== '$'){ lo = (mn < 0) ? Math.floor(lo) : Math.max(0, Math.floor(lo)); hi = Math.ceil(hi); }
   if (hi - lo < 4) hi = lo + 4;
   return {min:lo, max:hi};
 }
@@ -1021,7 +1072,7 @@ function setCapRuta(r){ state.capRuta = r; renderCaptura(); }
 /* Derivable en el periodo = ya existe captura de nivel inferior → bloquear captura directa */
 function derivableEn(kpi, periodo){ return esDerivado(kpi) && valorDerivado(kpi, periodo) !== null; }
 function capturableEn(kpi, periodo){
-  if (!kpi.activo || kpi.entidadDerivada) return false;
+  if (!kpi.activo || kpi.entidadDerivada || esCruzado(kpi)) return false;
   if (kpi.porEntidad) return true;
   if (esDerivado(kpi)) return !!kpi.capturaFallback && !derivableEn(kpi, periodo);
   return !!kpi.campos;
@@ -1119,6 +1170,7 @@ function updateCalcResult(kpi){
 }
 
 function handleSaveCaptura(){
+  if (state.observador){ showToast('Rol observador: consulta sin captura', 'error'); return; }
   var cad = capCadActual();
   var periodo = capPerActual(cad);
   var tardia = periodo !== periodoCerrado(cad);
@@ -1390,7 +1442,8 @@ const msalApp = new msal.PublicClientApplication({
 });
 
 function setSyncMsg(m){ var e = document.getElementById('sync-txt'); if (e) e.textContent = m; }
-function saveStateSilent(){ localStorage.setItem(CONFIG.storageKey+'_data', JSON.stringify(state.data)); }
+function saveStateSilent(){ localStorage.setItem(CONFIG.storageKey+'_data', JSON.stringify(state.data));
+  if ((CONFIG.procesosExternos||[]).length) localStorage.setItem(CONFIG.storageKey+'_ext', JSON.stringify(state.externo)); }
 
 async function msalLogin(){
   try {
@@ -1402,8 +1455,12 @@ async function msalLogin(){
       document.getElementById('login-err').textContent = 'La cuenta ' + acct.username + ' no tiene acceso al proceso ' + CONFIG.proceso + '. Solicita el alta con LECG.';
       return;
     }
-    state.userId = u.id; state.isAdmin = u.admin;
+    state.userId = u.id; state.isAdmin = u.admin; state.observador = !!u.observador;
     var ba = document.getElementById('btn-admin'); if (ba) ba.style.display = state.isAdmin ? '' : 'none';
+    if (state.observador){ /* rol solo lectura: sin captura */
+      var bc = document.querySelector('.tab-btn[data-tab="captura"]'); if (bc) bc.style.display = 'none';
+      var ch = document.getElementById('chip-user'); if (ch) ch.setAttribute('title','Rol observador · solo lectura');
+    }
     state.authenticated = true;
     var chip = document.getElementById('chip-user');
     if (chip) chip.textContent = state.userId + (acct.name ? ' · ' + acct.name.split(' ')[0] : '');
@@ -1514,9 +1571,21 @@ async function syncInit(){
   var mCap = await getColMap(ids.capturas);
   var cap = await gfetchAll('/sites/' + ids.site + '/lists/' + ids.capturas + '/items?expand=fields&$top=999');
   state.itemIndex = {};
+  var extProcs = CONFIG.procesosExternos || [];
+  if (extProcs.length) state.externo = {};
   cap.forEach(function(it){
     var f = it.fields; var proc = gv(f, mCap, 'Proceso'), per = gv(f, mCap, 'Periodo');
-    if (proc !== CONFIG.proceso || !per || !f.Title) return;
+    if (proc !== CONFIG.proceso){
+      /* lectura cruzada: se guarda aparte, jamás en state.data ni en itemIndex */
+      if (extProcs.indexOf(proc) >= 0 && per && f.Title){
+        var rawX = gv(f, mCap, 'Campos'); var exX = {}; try { exX = rawX ? JSON.parse(rawX) : {}; } catch(e){}
+        if (!state.externo[proc]) state.externo[proc] = {};
+        if (!state.externo[proc][per]) state.externo[proc][per] = {};
+        state.externo[proc][per][f.Title] = { valores: exX.valores || {} };
+      }
+      return;
+    }
+    if (!per || !f.Title) return;
     state.itemIndex[itemKey(f.Title, per)] = it.id;
     var raw = gv(f, mCap, 'Campos'); var extra = {}; try { extra = raw ? JSON.parse(raw) : {}; } catch(e){}
     if (!state.data[per]) state.data[per] = {};
