@@ -166,6 +166,9 @@ footer strong{color:var(--azul);}
 .ope-ctrl{display:flex;align-items:center;gap:16px;flex-wrap:wrap;background:#f4f7fa;border:1px solid #dbe4ec;border-radius:8px;padding:10px 14px;margin-bottom:12px;}
 .ope-ctrl .ent-sel{margin:0;}
 .ope-hint{font-size:10.5px;color:var(--muted);font-style:italic;}
+.ope-sub{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:8px 0 10px;padding-bottom:5px;border-bottom:1px solid #e3eaf1;}
+.ope-sub-h{font-size:11px;font-weight:700;color:#5a6b76;text-transform:uppercase;letter-spacing:.5px;}
+.ope-sub .ent-sel{margin:0;}
 .ent-tag{display:inline-flex;align-items:center;gap:4px;background:#e8f0f6;color:#003A5D;font-size:10.5px;font-weight:700;padding:2px 9px;border-radius:12px;margin-left:8px;vertical-align:middle;}
 .ent-tag svg{opacity:.7;}
 </style>
@@ -512,7 +515,7 @@ function subPeriodos(derivCad, srcCad, periodKey){
     for (var i=1;i<=12;i++) a.push(y+'-'+pad2(i)); return a; }
   return [periodKey];
 }
-function esRatio(kpi){ return !!(kpi.campos && kpi.campos.length>=2 && (kpi.unidad||'%')==='%'); }
+function esRatio(kpi){ if (kpi.entidadDerivada){ var s = kpiById(kpi.entidadDerivada.src); return !!(s && esRatio(s)); } return !!(kpi.campos && kpi.campos.length>=2 && (kpi.unidad||'%')==='%'); }
 /* ===== Periodo en curso / meta a la fecha (prorrateo) ===== */
 function diaHoyUTC(){ var n = new Date(); return Date.UTC(n.getFullYear(), n.getMonth(), n.getDate()); }
 function inicioPeriodo(key){ var c = cadenciaDeKey(key);
@@ -759,8 +762,10 @@ function entPrimActivo(){
 function entDrillActivo(){
   if (entDims().length < 2) return '__all__';
   var hijos = entHijos(entPrimActivo()).map(function(x){ return x.id; });
-  if (state.entDrill && state.entDrill !== '__all__' && hijos.indexOf(state.entDrill) >= 0) return state.entDrill;
-  return '__all__';
+  if (!hijos.length) return '__all__';
+  if (state.entDrill && hijos.indexOf(state.entDrill) >= 0) return state.entDrill;
+  for (var i=0;i<hijos.length;i++){ if (entTieneDato(entLeaf(), hijos[i])) return hijos[i]; }
+  return hijos[0];
 }
 function setEntPrim(v){ state.entPrim = v; state.entDrill = '__all__'; renderPanel(); }
 function setEntDrill(v){ state.entDrill = v; renderPanel(); }
@@ -823,18 +828,53 @@ function renderPanel(){
     var arr = KPIS.filter(function(k){ return k.nivel === b[0]; });
     if (!arr.length) return;
     html += '<div class="band '+b[1]+'"><div class="band-h"><span class="dot"></span>Nivel '+NIVEL_LBL[b[0]]+'</div>';
-    if (bandaTieneEntidad(b[0])) html += entSelectorHtml();
-    html += '<div class="kpi-grid">';
-    arr.forEach(function(kpi, idx){
-      var full = (arr.length === 1) || (arr.length % 2 === 1 && idx === arr.length-1);
-      html += renderKpiCard(kpi, full);
-    });
-    html += '</div></div>';
+    if (b[0]==='operativo' && entDims().length >= 2){
+      html += renderOpeSecciones(arr);
+    } else {
+      if (bandaTieneEntidad(b[0])) html += entSelectorHtml();
+      html += '<div class="kpi-grid">';
+      arr.forEach(function(kpi, idx){
+        var full = (arr.length === 1) || (arr.length % 2 === 1 && idx === arr.length-1);
+        html += renderKpiCard(kpi, full);
+      });
+      html += '</div>';
+    }
+    html += '</div>';
   });
   document.getElementById('tab-panel').innerHTML = html;
   setTimeout(function(){ KPIS.forEach(function(kpi){ if (kpi.activo) renderTrendChart(kpi); }); }, 50);
 }
 
+function primOptsHtml(top, pid){
+  return entList(top).map(function(c){ return '<option value="'+c.id+'"'+(c.id===pid?' selected':'')+'>'+entNombre(top,c.id)+(entTieneDato(top,c.id)?'':' (sin dato)')+'</option>'; }).join('');
+}
+function drillOptsHtml(pid, drill){
+  return entHijos(pid).map(function(r){ return '<option value="'+r.id+'"'+(r.id===drill?' selected':'')+'>'+r.id+'</option>'; }).join('');
+}
+function renderOpeSecciones(arr){
+  var top = entTop(), leaf = entLeaf(), pid = entPrimActivo();
+  var grpTop = arr.filter(function(k){ return k.entidadDerivada; });
+  var grpLeaf = arr.filter(function(k){ return k.porEntidad === leaf; });
+  var otros = arr.filter(function(k){ return !k.entidadDerivada && k.porEntidad !== leaf; });
+  var h = '<div class="ope-ctrl"><div class="ent-sel">'+ICO.user+'<span><strong>'+entLabel(top)+':</strong></span><select onchange="setEntPrim(this.value)">'+primOptsHtml(top,pid)+'</select></div></div>';
+  if (grpTop.length){
+    h += '<div class="ope-sub"><span class="ope-sub-h">KPIs por '+entLabel(top)+'</span></div><div class="kpi-grid">';
+    grpTop.forEach(function(kpi, idx){ h += renderKpiCard(kpi, (grpTop.length%2===1 && idx===grpTop.length-1)); });
+    h += '</div>';
+  }
+  if (grpLeaf.length){
+    var drill = entDrillActivo();
+    h += '<div class="ope-sub"><span class="ope-sub-h">KPIs por '+entLabel(leaf)+'</span><div class="ent-sel">'+ICO.bars+'<span><strong>'+entLabel(leaf)+':</strong></span><select onchange="setEntDrill(this.value)">'+drillOptsHtml(pid,drill)+'</select></div></div><div class="kpi-grid">';
+    grpLeaf.forEach(function(kpi, idx){ h += renderKpiCard(kpi, (grpLeaf.length%2===1 && idx===grpLeaf.length-1)); });
+    h += '</div>';
+  }
+  if (otros.length){
+    h += '<div class="kpi-grid">';
+    otros.forEach(function(kpi, idx){ h += renderKpiCard(kpi, (otros.length%2===1 && idx===otros.length-1)); });
+    h += '</div>';
+  }
+  return h;
+}
 function entSelectorHtml(){
   var nd = entDims().length;
   var top = entTop(), pid = entPrimActivo();
