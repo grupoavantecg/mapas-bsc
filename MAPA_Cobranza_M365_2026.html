@@ -977,6 +977,30 @@ function renderKpiCard(kpi, full){
   '</div>';
 }
 
+/* ===== num/den respetando la entidad resuelta del selector (espeja valOpe) ===== */
+function ndEntidad(kpi, ent, periodKey){
+  var cad = cadenciaDeKey(periodKey);
+  var wks = (cad === 'semanal') ? [periodKey] : subPeriodos(cad, 'semanal', periodKey);
+  var acc = null;
+  wks.forEach(function(wk){ var nd = ndEntidadSemana(kpi, ent, wk);
+    if (nd){ acc = acc || {num:0, den:0}; acc.num += nd.num; acc.den += nd.den; } });
+  return acc;
+}
+function ndLeafAgg(kpi, parentId, periodKey){
+  var cad = cadenciaDeKey(periodKey);
+  var wks = (cad === 'semanal') ? [periodKey] : subPeriodos(cad, 'semanal', periodKey);
+  var acc = null;
+  wks.forEach(function(wk){ entHijos(parentId).forEach(function(r){
+    var nd = ndSlot(kpi, kpi.id+'@'+r.id, wk);
+    if (nd){ acc = acc || {num:0, den:0}; acc.num += nd.num; acc.den += nd.den; } }); });
+  return acc;
+}
+function ndOpe(kpi, er, periodKey){
+  if (!esRatio(kpi)) return null;
+  if (!er) return numDenEnPeriodo(kpi, periodKey);
+  if (er.tipo === 'leafAgg') return ndLeafAgg(kpi, er.ent, periodKey);
+  return ndEntidad(kpi, er.ent, periodKey); /* simple / leaf / top */
+}
 /* ===== Gráficas ===== */
 function hayDatosAnioAnterior(){
   var prev = String(new Date().getFullYear()-1);
@@ -1086,7 +1110,8 @@ function renderTrendChart(kpi){
   var idxCurso = -1;
   serie.forEach(function(s,i){ if (s.key && enCurso(s.key) && s.value !== null) idxCurso = i; });
   var metaLine = serie.map(function(s){ return (s.key ? metaEfectiva(kpi, s.key) : kpi.meta); });
-  var ndSerie = esRatio(kpi) ? serie.map(function(s){ return s.key ? numDenEnPeriodo(kpi, s.key) : null; }) : null;
+  var erND = esRatio(kpi) ? entResuelta(kpi) : null;
+  var ndSerie = esRatio(kpi) ? serie.map(function(s){ return s.key ? ndOpe(kpi, erND, s.key) : null; }) : null;
   var ptBg = serie.map(function(s,i){ return i === idxCurso ? '#ffffff' : '#003A5D'; });
   var ptBd = serie.map(function(s,i){ return i === idxCurso ? '#E6912B' : '#003A5D'; });
   var ptBw = serie.map(function(s,i){ return i === idxCurso ? 2.5 : 1; });
