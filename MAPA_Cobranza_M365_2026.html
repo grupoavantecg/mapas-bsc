@@ -1001,6 +1001,14 @@ function ndOpe(kpi, er, periodKey){
   if (er.tipo === 'leafAgg') return ndLeafAgg(kpi, er.ent, periodKey);
   return ndEntidad(kpi, er.ent, periodKey); /* simple / leaf / top */
 }
+/* Nombres de numerador/denominador: campos propios → parámetros de la fórmula → KPI fuente */
+function nombresParam(kpi){
+  if (kpi.campos && kpi.campos.length>=2) return {n:kpi.campos[0].label, d:kpi.campos[1].label};
+  if (kpi.formula && kpi.formula.indexOf('/')>-1){ var p=kpi.formula.split('/'); if (p.length===2) return {n:p[0].trim(), d:p[1].trim()}; }
+  var src = kpi.entidadDerivada ? kpiById(kpi.entidadDerivada.src) : ((kpi.derivaDe&&kpi.derivaDe[0]) ? kpiById(kpi.derivaDe[0]) : null);
+  if (src) return nombresParam(src);
+  return {n:'Numerador', d:'Denominador'};
+}
 /* ===== Gráficas ===== */
 function hayDatosAnioAnterior(){
   var prev = String(new Date().getFullYear()-1);
@@ -1035,8 +1043,7 @@ function chartOptions(kpi, vals, ndSerie){
         afterLabel:function(c){
           if (c.datasetIndex !== 0 || !ndSerie) return;
           var nd = ndSerie[c.dataIndex]; if (!nd || nd.num==null || nd.den==null) return;
-          var lblN=(kpi.campos&&kpi.campos[0]&&kpi.campos[0].label)||'Numerador';
-          var lblD=(kpi.campos&&kpi.campos[1]&&kpi.campos[1].label)||'Denominador';
+          var np=nombresParam(kpi); var lblN=np.n, lblD=np.d;
           var esMoney=function(l){ return /dinero|valor|cartera|monto|importe|\$|peso|venta|ingreso|capital/i.test(l||''); };
           var fc=function(v,l){ var n=Number(v).toLocaleString('es-MX',{maximumFractionDigits:0}); return esMoney(l)?'$'+n:n; };
           return [lblN+': '+fc(nd.num,lblN), lblD+': '+fc(nd.den,lblD)];
