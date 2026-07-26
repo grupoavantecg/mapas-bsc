@@ -270,7 +270,7 @@ const CONFIG = { proceso:'Cobranza', procesoCode:'cobranza', eje:'Gestión del C
 const KPIS = [
 {id:'efectividad_cobranza', matriz:'COB-011', nombre:'Efectividad de Cobranza (%DC)', nivel:'estrategico', cadencia:'trimestral',
  formula:'Total de dinero cobrado / Total de valor de Cartera Global', respDato:'Dirección General', meta:null, unidad:'%', activo:true,
- derivaDe:['dinero_cobrado'], agregacion:'promedio',
+ derivaDe:['dinero_cobrado'], agregacion:'ponderado',
  campos:[{id:'dinero_cobrado', label:'Total de dinero cobrado'},{id:'valor_cartera', label:'Total de valor de Cartera Global'}],
  calcular:function(v){return v.valor_cartera > 0 ? (v.dinero_cobrado / v.valor_cartera * 100) : null;},
  semaforo:function(val,m){return val >= m ? 'v' : (val >= m*0.92 ? 'a' : 'r');}},
