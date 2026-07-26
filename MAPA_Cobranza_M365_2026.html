@@ -995,8 +995,9 @@ function ndLeafAgg(kpi, parentId, periodKey){
     if (nd){ acc = acc || {num:0, den:0}; acc.num += nd.num; acc.den += nd.den; } }); });
   return acc;
 }
+function ndAplica(kpi){ return esRatio(kpi) && kpi.agregacion !== 'promedio'; }
 function ndOpe(kpi, er, periodKey){
-  if (!esRatio(kpi)) return null;
+  if (!ndAplica(kpi)) return null;
   if (!er) return numDenEnPeriodo(kpi, periodKey);
   if (er.tipo === 'leafAgg') return ndLeafAgg(kpi, er.ent, periodKey);
   return ndEntidad(kpi, er.ent, periodKey); /* simple / leaf / top */
@@ -1041,8 +1042,9 @@ function chartOptions(kpi, vals, ndSerie){
     plugins:{ legend:{display:true, position:'bottom', align:'center', labels:{font:{size:10}, padding:8, usePointStyle:true}},
       tooltip:{enabled:true, callbacks:{label:function(c){return c.dataset.label+': '+fv(c.parsed.y);},
         afterLabel:function(c){
-          if (c.datasetIndex !== 0 || !ndSerie) return;
-          var nd = ndSerie[c.dataIndex]; if (!nd || nd.num==null || nd.den==null) return;
+          if (!ndSerie) return;
+          var arr = ndSerie[c.datasetIndex]; if (!arr) return;
+          var nd = arr[c.dataIndex]; if (!nd || nd.num==null || nd.den==null) return;
           var np=nombresParam(kpi); var lblN=np.n, lblD=np.d;
           var esMoney=function(l){ return /dinero|valor|cartera|monto|importe|\$|peso|venta|ingreso|capital/i.test(l||''); };
           var fc=function(v,l){ var n=Number(v).toLocaleString('es-MX',{maximumFractionDigits:0}); return esMoney(l)?'$'+n:n; };
@@ -1067,6 +1069,13 @@ function renderYoYChart(kpi, box){
   if (!actual.concat(previo).some(function(v){return v!==null;})){
     box.outerHTML = '<div class="kpi-trend-empty">Sin datos para la comparativa anual</div>'; return;
   }
+  var ndYoY = null;
+  if (ndAplica(kpi)){
+    var kA=[], kP=[];
+    if (kpi.cadencia==='trimestral'){ for (var qi=1;qi<=4;qi++){ kA.push(Y+'-Q'+qi); kP.push((Y-1)+'-Q'+qi); } }
+    else { for (var mi=1;mi<=12;mi++){ kA.push(Y+'-'+pad2(mi)); kP.push((Y-1)+'-'+pad2(mi)); } }
+    ndYoY = [ kA.map(function(k){return numDenEnPeriodo(kpi,k);}), kP.map(function(k){return numDenEnPeriodo(kpi,k);}) ];
+  }
   var canvas = document.getElementById('canvas-'+kpi.id); if (!canvas) return;
   state.charts[kpi.id] = new Chart(canvas.getContext('2d'), {
     type:'line',
@@ -1075,7 +1084,7 @@ function renderYoYChart(kpi, box){
       {label:''+(Y-1), data:previo, borderColor:'#8A9BAA', borderWidth:2, borderDash:[6,4], pointRadius:3, pointHoverRadius:5, tension:.3, fill:false, spanGaps:true},
       {label:'Meta', data:labels.map(function(){return kpi.meta;}), borderColor:'#EB002A', borderDash:[5,4], borderWidth:2, pointRadius:0, fill:false}
     ]},
-    options: chartOptions(kpi, actual.concat(previo))
+    options: chartOptions(kpi, actual.concat(previo), ndYoY)
   });
 }
 function renderTrendChart(kpi){
@@ -1117,8 +1126,8 @@ function renderTrendChart(kpi){
   var idxCurso = -1;
   serie.forEach(function(s,i){ if (s.key && enCurso(s.key) && s.value !== null) idxCurso = i; });
   var metaLine = serie.map(function(s){ return (s.key ? metaEfectiva(kpi, s.key) : kpi.meta); });
-  var erND = esRatio(kpi) ? entResuelta(kpi) : null;
-  var ndSerie = esRatio(kpi) ? serie.map(function(s){ return s.key ? ndOpe(kpi, erND, s.key) : null; }) : null;
+  var erND = ndAplica(kpi) ? entResuelta(kpi) : null;
+  var ndSerie = ndAplica(kpi) ? serie.map(function(s){ return s.key ? ndOpe(kpi, erND, s.key) : null; }) : null;
   var ptBg = serie.map(function(s,i){ return i === idxCurso ? '#ffffff' : '#003A5D'; });
   var ptBd = serie.map(function(s,i){ return i === idxCurso ? '#E6912B' : '#003A5D'; });
   var ptBw = serie.map(function(s,i){ return i === idxCurso ? 2.5 : 1; });
@@ -1132,7 +1141,7 @@ function renderTrendChart(kpi){
          segment:{ borderDash:function(ctx){ return ctx.p1DataIndex === idxCurso ? [6,4] : undefined; } }},
         {label:'Meta', data:metaLine, borderColor:'#EB002A', borderDash:[5,4], borderWidth:2, pointRadius:0, fill:false}
       ]},
-    options: chartOptions(kpi, serie.map(function(x){return x.value;}).concat(metaLine), ndSerie)
+    options: chartOptions(kpi, serie.map(function(x){return x.value;}).concat(metaLine), ndSerie ? [ndSerie] : null)
   });
 }
 /* ===== Registrar Datos · selector de cadencia + periodo (+ entidad) ===== */
