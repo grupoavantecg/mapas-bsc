@@ -279,10 +279,10 @@ const KPIS = [
  calcular:function(v){return v.inv_total > 0 ? (v.inv_obsoleto / v.inv_total * 100) : null;},
  semaforo:function(val,m){return val <= 10 ? 'v' : (val <= 15 ? 'a' : 'r');}},
 {id:'efectividad_exhibicion', matriz:'SUM-031', nombre:'Efectividad de Exhibición', nivel:'tactico', cadencia:'semanal',
- formula:'Total de claves con existencia única CEDIS / Total de claves activas', respDato:'RP - Planeación (AGG)', meta:null, unidad:'%', activo:true,
- campos:[{id:'claves_cedis', label:'Claves con existencia única CEDIS'},{id:'claves_activas', label:'Total de claves activas'}],
+ formula:'Total de claves con existencia CEDIS más una sucursal o unidad / Total de claves activas en CEDIS', respDato:'RP - Planeación (AGG)', meta:null, unidad:'%', activo:true,
+ campos:[{id:'claves_cedis', label:'Claves con existencia CEDIS más una sucursal o unidad'},{id:'claves_activas', label:'Total de claves activas en CEDIS'}],
  calcular:function(v){return v.claves_activas > 0 ? (v.claves_cedis / v.claves_activas * 100) : null;},
- semaforo:function(val,m){return val >= 90 ? 'v' : (val >= 80 ? 'a' : 'r');}}
+ semaforo:function(val,m){return val >= 80 ? 'v' : (val >= 70 ? 'a' : 'r');}}
 ];
 
 function fmt1(v){ return (v == null) ? '—' : (Math.round(v*10)/10).toFixed(1); }
