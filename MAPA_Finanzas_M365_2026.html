@@ -501,7 +501,7 @@ function fraccionTranscurrida(key){
 /* Meta ajustada al periodo: prorrateada si está EN CURSO y el KPI es acumulativo (no ratio). */
 function metaEfectiva(kpi, periodo){
   if (kpi.meta == null) return null;
-  if (periodo && enCurso(periodo) && !esRatio(kpi) && (kpi.unidad||'%') !== '%') return kpi.meta * fraccionTranscurrida(periodo);
+  if (periodo && enCurso(periodo) && kpi.acumulativo !== false && !esRatio(kpi) && (kpi.unidad||'%') !== '%') return kpi.meta * fraccionTranscurrida(periodo);
   return kpi.meta;
 }
 function aggDe(kpi){ return kpi.agregacion || (esRatio(kpi) ? 'ponderado' : 'promedio'); }
@@ -610,6 +610,7 @@ function numDenEnPeriodo(kpi, periodKey, seen){
       if (nd){ acc2 = acc2 || {num:0, den:0}; acc2.num += nd.num; acc2.den += nd.den; }
     });
   });
+  if (acc2 == null && kpi.capturaFallback && esRatio(kpi)) return ndSlot(kpi, kpi.id, periodKey);
   return acc2;
 }
 function valorDerivado(kpi, periodKey, seen){

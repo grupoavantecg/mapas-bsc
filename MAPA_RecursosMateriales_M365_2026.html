@@ -606,6 +606,7 @@ function numDenEnPeriodo(kpi, periodKey, seen){
       if (nd){ acc2 = acc2 || {num:0, den:0}; acc2.num += nd.num; acc2.den += nd.den; }
     });
   });
+  if (acc2 == null && kpi.capturaFallback && esRatio(kpi)) return ndSlot(kpi, kpi.id, periodKey);
   return acc2;
 }
 function valorDerivado(kpi, periodKey, seen){
