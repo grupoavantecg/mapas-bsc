@@ -257,7 +257,7 @@ const CONFIG = { proceso:'Cobranza', procesoCode:'cobranza', eje:'Gestión del C
   },
   entidades:{
     dims:['ruta','cobrador'],
-    labels:{ruta:'Ruta', cobrador:'Cobrador'},
+    labels:{ruta:'Ruta', cobrador:'Cartera'},
     jerarquia:{ruta:'cobrador'},
     catalogo:{
       cobrador:[{id:'C0.0', nombre:'C0.0'}, {id:'C1.0', nombre:'C1.0'}, {id:'C1.1', nombre:'C1.1'}, {id:'C1.2', nombre:'C1.2'}, {id:'C10.0', nombre:'C10.0'}, {id:'C2.0', nombre:'C2.0'}, {id:'C3.0', nombre:'C3.0'}, {id:'C3.1', nombre:'C3.1'}, {id:'C4.0', nombre:'C4.0'}, {id:'C5.0', nombre:'C5.0'}, {id:'C6.0', nombre:'C6.0'}, {id:'C6.1', nombre:'C6.1'}, {id:'C7.0', nombre:'C7.0'}, {id:'C7.1', nombre:'C7.1'}, {id:'C8.0', nombre:'C8.0'}, {id:'C9.0', nombre:'C9.0'}],
@@ -307,15 +307,15 @@ const KPIS = [
  campos:[{id:'clientes_visitados', label:'Clientes visitados en la ruta'},{id:'clientes_ruta', label:'Total de clientes en ruta'}],
  calcular:function(v){return v.clientes_ruta > 0 ? (v.clientes_visitados / v.clientes_ruta * 100) : null;},
  semaforo:function(val,m){return val >= m ? 'v' : (val >= m*0.85 ? 'a' : 'r');}},
-{id:'dinero_cobrador', matriz:'COB-015', nombre:'Dinero Cobrado por Cobrador', nivel:'operativo', cadencia:'semanal',
+{id:'dinero_cobrador', matriz:'COB-015', nombre:'Dinero Cobrado por Cartera', nivel:'operativo', cadencia:'semanal',
  formula:'Dinero cobrado / Valor de cartera del cobrador', respDato:'Gestor de Cobranza', meta:null, unidad:'%', activo:true,
  entidadDerivada:{src:'dinero_ruta', dim:'cobrador'},
  semaforo:function(val,m){return val >= m ? 'v' : (val >= m*0.92 ? 'a' : 'r');}},
-{id:'cuentas_cobrador', matriz:'COB-017', nombre:'Cuentas Cobradas por Cobrador', nivel:'operativo', cadencia:'semanal',
+{id:'cuentas_cobrador', matriz:'COB-017', nombre:'Cuentas Cobradas por Cartera', nivel:'operativo', cadencia:'semanal',
  formula:'Cuentas cobradas / Cuentas en cartera del cobrador', respDato:'Gestor de Cobranza', meta:null, unidad:'%', activo:true,
  entidadDerivada:{src:'cuentas_ruta', dim:'cobrador'},
  semaforo:function(val,m){return val >= m ? 'v' : (val >= m*0.92 ? 'a' : 'r');}},
-{id:'atendidas_cobrador', matriz:'COB-019', nombre:'Cuentas Atendidas por Cobrador', nivel:'operativo', cadencia:'semanal',
+{id:'atendidas_cobrador', matriz:'COB-019', nombre:'Cuentas Atendidas por Cartera', nivel:'operativo', cadencia:'semanal',
  formula:'Clientes visitados / Total de clientes en cartera del cobrador', respDato:'Gestor de Cobranza', meta:null, unidad:'%', activo:true,
  entidadDerivada:{src:'atendidas_ruta', dim:'cobrador'},
  semaforo:function(val,m){return val >= m ? 'v' : (val >= m*0.85 ? 'a' : 'r');}}
