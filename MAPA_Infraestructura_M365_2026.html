@@ -924,10 +924,12 @@ function ndOpe(kpi, er, periodKey){
 }
 /* Nombres de numerador/denominador: campos propios -> parametros de la formula -> KPI fuente */
 function nombresParam(kpi){
-  if (kpi.campos && kpi.campos.length>=2) return {n:kpi.campos[0].label, d:kpi.campos[1].label};
-  if (kpi.formula && kpi.formula.indexOf('/')>-1){ var p=kpi.formula.split('/'); if (p.length===2) return {n:p[0].trim(), d:p[1].trim()}; }
+  if (kpi.campos && kpi.campos.length>=2) return {n:kpi.campos[0].label, d:kpi.campos[1].label, idN:kpi.campos[0].id, idD:kpi.campos[1].id};
   var src = kpi.entidadDerivada ? kpiById(kpi.entidadDerivada.src) : ((kpi.derivaDe&&kpi.derivaDe[0]) ? kpiById(kpi.derivaDe[0]) : null);
-  if (src) return nombresParam(src);
+  var her = src ? nombresParam(src) : null;
+  if (kpi.formula && kpi.formula.indexOf('/')>-1){ var p=kpi.formula.split('/');
+    if (p.length===2) return {n:p[0].trim(), d:p[1].trim(), idN:(her?her.idN:null), idD:(her?her.idD:null)}; }
+  if (her) return her;
   return {n:'Numerador', d:'Denominador'};
 }
 /* ===== Gráficas ===== */
@@ -966,9 +968,14 @@ function chartOptions(kpi, vals, ndSerie){
           var arr = ndSerie[c.datasetIndex]; if (!arr) return;
           var nd = arr[c.dataIndex]; if (!nd || nd.num==null || nd.den==null) return;
           var np=nombresParam(kpi); var lblN=np.n, lblD=np.d;
-          var esMoney=function(l){ return /dinero|valor|cartera|monto|importe|\$|peso|venta|ingreso|capital/i.test(l||''); };
-          var fc=function(v,l){ var n=Number(v).toLocaleString('es-MX',{maximumFractionDigits:0}); return esMoney(l)?'$'+n:n; };
-          return [lblN+': '+fc(nd.num,lblN), lblD+': '+fc(nd.den,lblD)];
+          /* Formato num/den: decide por el ID del parámetro (semántico y estable), no por el texto de la etiqueta.
+             Un label como 'Cuentas en Cartera Global' NO debe imprimirse como moneda. */
+          var RX_CONTEO=/^(cuentas|clientes|piezas|productos|pedidos|colaboradores|puestos|procesos|tareas|vehiculos|garantias|oc_|km_|litros|bienes|claves|respuestas|iniciativas|mantenimientos|contados|programados|surtidos|requisiciones|plantilla|alineadas|certificados|cubiertos|cumplieron|resueltas|pct_|num_)/i;
+          var RX_DINERO=/^(dinero|valor|monto|importe|vta|ventas|inv_|capital|descuento|precio|costo|ingreso|utilidad|presupuesto)/i;
+          var esMoney=function(l,id){ if (id){ if (RX_CONTEO.test(id)) return false; if (RX_DINERO.test(id)) return true; }
+            return /dinero|valor|cartera|monto|importe|\$|peso|venta|ingreso|capital/i.test(l||''); };
+          var fc=function(v,l,id){ var n=Number(v).toLocaleString('es-MX',{maximumFractionDigits:0}); return esMoney(l,id)?'$'+n:n; };
+          return [lblN+': '+fc(nd.num,lblN,np.idN), lblD+': '+fc(nd.den,lblD,np.idD)];
         }}} },
     scales:{ x:{ticks:{font:{size:11}, color:'#475569'}, grid:{display:false}},
       y:{ticks:{font:{size:11}, color:'#475569', callback:fv}, min:y.min, max:y.max, grid:{color:'#f0f0f0'}} }
