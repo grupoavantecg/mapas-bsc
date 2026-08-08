@@ -264,23 +264,23 @@ const KPIS = [
  semaforo:function(val,m){return val >= 80 ? 'v' : (val >= 70 ? 'a' : 'r');}},
 {id:'disponibilidad_producto', matriz:'SUM-028', nombre:'Disponibilidad de Producto', nivel:'tactico', cadencia:'mensual',
  formula:'Productos dentro de parámetros de abastecimiento / Total de productos activos', respDato:'RP - Planeación (AGG)', meta:null, unidad:'%', activo:true,
- campos:[{id:'productos_dentro', label:'Productos dentro de parámetros de abastecimiento'},{id:'productos_activos', label:'Total de productos activos'}],
+ campos:[{id:'productos_dentro', label:'Productos dentro de parámetros de abastecimiento', u:'conteo'},{id:'productos_activos', label:'Total de productos activos', u:'conteo'}],
  calcular:function(v){return v.productos_activos > 0 ? (v.productos_dentro / v.productos_activos * 100) : null;},
  semaforo:function(val,m){return val >= 95 ? 'v' : (val >= 90 ? 'a' : 'r');}},
 {id:'fill_rate', matriz:'SUM-029', nombre:'Fill Rate', nivel:'tactico', cadencia:'mensual',
  formula:'Pedidos surtidos completos / Total de pedidos', respDato:'RP - Planeación (AGG)', meta:null, unidad:'%', activo:false,
- campos:[{id:'surtidos', label:'Pedidos surtidos completos'},{id:'pedidos', label:'Total de pedidos'}],
+ campos:[{id:'surtidos', label:'Pedidos surtidos completos', u:'conteo'},{id:'pedidos', label:'Total de pedidos', u:'conteo'}],
  calcular:function(v){return v.pedidos > 0 ? (v.surtidos / v.pedidos * 100) : null;},
  semaforo:function(val,m){return val >= 95 ? 'v' : (val >= 90 ? 'a' : 'r');}},
 {id:'pbr', matriz:'SUM-030', nombre:'PBR (Producto de Baja Rotación)', nivel:'tactico', cadencia:'mensual',
  formula:'Valor de inventario obsoleto / Valor de inventario total', respDato:'RP - Planeación (AGG)', meta:null, unidad:'%', activo:true,
  sentido:'min',
- campos:[{id:'inv_obsoleto', label:'Valor de inventario obsoleto'},{id:'inv_total', label:'Valor de inventario total'}],
+ campos:[{id:'inv_obsoleto', label:'Valor de inventario obsoleto', u:'moneda'},{id:'inv_total', label:'Valor de inventario total', u:'moneda'}],
  calcular:function(v){return v.inv_total > 0 ? (v.inv_obsoleto / v.inv_total * 100) : null;},
  semaforo:function(val,m){return val <= 10 ? 'v' : (val <= 15 ? 'a' : 'r');}},
 {id:'efectividad_exhibicion', matriz:'SUM-031', nombre:'Efectividad de Exhibición', nivel:'tactico', cadencia:'semanal',
  formula:'Total de claves con existencia CEDIS más una sucursal o unidad / Total de claves activas en CEDIS', respDato:'RP - Planeación (AGG)', meta:null, unidad:'%', activo:true,
- campos:[{id:'claves_cedis', label:'Claves con existencia CEDIS más una sucursal o unidad'},{id:'claves_activas', label:'Total de claves activas en CEDIS'}],
+ campos:[{id:'claves_cedis', label:'Claves con existencia CEDIS más una sucursal o unidad', u:'conteo'},{id:'claves_activas', label:'Total de claves activas en CEDIS', u:'conteo'}],
  calcular:function(v){return v.claves_activas > 0 ? (v.claves_cedis / v.claves_activas * 100) : null;},
  semaforo:function(val,m){return val >= 80 ? 'v' : (val >= 70 ? 'a' : 'r');}}
 ];
@@ -932,11 +932,11 @@ function ndOpe(kpi, er, periodKey){
 }
 /* Nombres de numerador/denominador: campos propios -> parametros de la formula -> KPI fuente */
 function nombresParam(kpi){
-  if (kpi.campos && kpi.campos.length>=2) return {n:kpi.campos[0].label, d:kpi.campos[1].label, idN:kpi.campos[0].id, idD:kpi.campos[1].id};
+  if (kpi.campos && kpi.campos.length>=2) return {n:kpi.campos[0].label, d:kpi.campos[1].label, idN:kpi.campos[0].id, idD:kpi.campos[1].id, uN:kpi.campos[0].u||null, uD:kpi.campos[1].u||null};
   var src = kpi.entidadDerivada ? kpiById(kpi.entidadDerivada.src) : ((kpi.derivaDe&&kpi.derivaDe[0]) ? kpiById(kpi.derivaDe[0]) : null);
   var her = src ? nombresParam(src) : null;
   if (kpi.formula && kpi.formula.indexOf('/')>-1){ var p=kpi.formula.split('/');
-    if (p.length===2) return {n:p[0].trim(), d:p[1].trim(), idN:(her?her.idN:null), idD:(her?her.idD:null)}; }
+    if (p.length===2) return {n:p[0].trim(), d:p[1].trim(), idN:(her?her.idN:null), idD:(her?her.idD:null), uN:(her?her.uN:null), uD:(her?her.uD:null)}; }
   if (her) return her;
   return {n:'Numerador', d:'Denominador'};
 }
@@ -976,14 +976,15 @@ function chartOptions(kpi, vals, ndSerie){
           var arr = ndSerie[c.datasetIndex]; if (!arr) return;
           var nd = arr[c.dataIndex]; if (!nd || nd.num==null || nd.den==null) return;
           var np=nombresParam(kpi); var lblN=np.n, lblD=np.d;
-          /* Formato num/den: decide por el ID del parámetro (semántico y estable), no por el texto de la etiqueta.
-             Un label como 'Cuentas en Cartera Global' NO debe imprimirse como moneda. */
-          var RX_CONTEO=/^(cuentas|clientes|piezas|productos|pedidos|colaboradores|puestos|procesos|tareas|vehiculos|garantias|oc_|km_|litros|bienes|claves|respuestas|iniciativas|mantenimientos|contados|programados|surtidos|requisiciones|plantilla|alineadas|certificados|cubiertos|cumplieron|resueltas|pct_|num_)/i;
-          var RX_DINERO=/^(dinero|valor|monto|importe|vta|ventas|inv_|capital|descuento|precio|costo|ingreso|utilidad|presupuesto)/i;
-          var esMoney=function(l,id){ if (id){ if (RX_CONTEO.test(id)) return false; if (RX_DINERO.test(id)) return true; }
-            return /dinero|valor|cartera|monto|importe|\$|peso|venta|ingreso|capital/i.test(l||''); };
-          var fc=function(v,l,id){ var n=Number(v).toLocaleString('es-MX',{maximumFractionDigits:0}); return esMoney(l,id)?'$'+n:n; };
-          return [lblN+': '+fc(nd.num,lblN,np.idN), lblD+': '+fc(nd.den,lblD,np.idD)];
+          /* Formato num/den: la unidad se DECLARA en cada campo (u:), no se adivina.
+             u = 'moneda' | 'conteo' | 'pct' | 'km' | 'L'. Sin u declarada -> conteo. */
+          var fc=function(v,u){ var n=Number(v).toLocaleString('es-MX',{maximumFractionDigits:0});
+            if (u==='moneda') return '$'+n;
+            if (u==='pct')    return n+'%';
+            if (u==='km')     return n+' km';
+            if (u==='L')      return n+' L';
+            return n; };
+          return [lblN+': '+fc(nd.num,np.uN), lblD+': '+fc(nd.den,np.uD)];
         }}} },
     scales:{ x:{ticks:{font:{size:11}, color:'#475569'}, grid:{display:false}},
       y:{ticks:{font:{size:11}, color:'#475569', callback:fv}, min:y.min, max:y.max, grid:{color:'#f0f0f0'}} }

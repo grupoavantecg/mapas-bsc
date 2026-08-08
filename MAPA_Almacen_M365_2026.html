@@ -258,13 +258,14 @@ const CONFIG = { proceso:'Almacén', procesoCode:'almacen', eje:'Cadena de Sumin
 /* KPIs Matriz de Trazabilidad v010 · metas desde Config_KPI (null en código público) */
 const KPIS = [
 {id:'confiabilidad_inventario', matriz:'SUM-033', nombre:'Confiabilidad del Inventario', nivel:'tactico', cadencia:'mensual',
- formula:'1 − |Valor real − Valor registrado| / Valor registrado (apego del inventario)', respDato:'RP - Almacén (EAAP)', meta:null, unidad:'%', activo:true,
- campos:[{id:'valor_real', label:'Valor real del inventario ($)'},{id:'valor_registrado', label:'Valor registrado del inventario ($)'}],
+ formula:'1 − Σ|Piezas físicas − Piezas registradas| / Total de piezas registradas (apego del inventario)', respDato:'RP - Almacén (EAAP)', meta:null, unidad:'%', activo:true,
+ /* Matriz v014 (nota v011): la métrica se migró de valor ($) a PIEZAS. Los ids se conservan por compatibilidad con las capturas ya registradas en M365. */
+ campos:[{id:'valor_real', label:'Piezas físicas contadas', u:'conteo'},{id:'valor_registrado', label:'Total de piezas registradas', u:'conteo'}],
  calcular:function(v){return v.valor_registrado > 0 ? ((1 - Math.abs(v.valor_real - v.valor_registrado)/v.valor_registrado) * 100) : null;},
  semaforo:function(val,m){return val >= 99 ? 'v' : (val >= 95 ? 'a' : 'r');}},
 {id:'conteos_ciclicos', matriz:'SUM-034', nombre:'Cumplimiento al Programa de Conteos Cíclicos', nivel:'operativo', cadencia:'semanal',
  formula:'Productos contados / Productos programados', respDato:'RP - Almacén (EAAP)', meta:null, unidad:'%', activo:true,
- campos:[{id:'contados', label:'Productos contados'},{id:'programados', label:'Productos programados'}],
+ campos:[{id:'contados', label:'Productos contados', u:'conteo'},{id:'programados', label:'Productos programados', u:'conteo'}],
  calcular:function(v){return v.programados > 0 ? (v.contados / v.programados * 100) : null;},
  semaforo:function(val,m){return val >= 100 ? 'v' : (val >= 95 ? 'a' : 'r');}}
 ];
@@ -916,11 +917,11 @@ function ndOpe(kpi, er, periodKey){
 }
 /* Nombres de numerador/denominador: campos propios -> parametros de la formula -> KPI fuente */
 function nombresParam(kpi){
-  if (kpi.campos && kpi.campos.length>=2) return {n:kpi.campos[0].label, d:kpi.campos[1].label, idN:kpi.campos[0].id, idD:kpi.campos[1].id};
+  if (kpi.campos && kpi.campos.length>=2) return {n:kpi.campos[0].label, d:kpi.campos[1].label, idN:kpi.campos[0].id, idD:kpi.campos[1].id, uN:kpi.campos[0].u||null, uD:kpi.campos[1].u||null};
   var src = kpi.entidadDerivada ? kpiById(kpi.entidadDerivada.src) : ((kpi.derivaDe&&kpi.derivaDe[0]) ? kpiById(kpi.derivaDe[0]) : null);
   var her = src ? nombresParam(src) : null;
   if (kpi.formula && kpi.formula.indexOf('/')>-1){ var p=kpi.formula.split('/');
-    if (p.length===2) return {n:p[0].trim(), d:p[1].trim(), idN:(her?her.idN:null), idD:(her?her.idD:null)}; }
+    if (p.length===2) return {n:p[0].trim(), d:p[1].trim(), idN:(her?her.idN:null), idD:(her?her.idD:null), uN:(her?her.uN:null), uD:(her?her.uD:null)}; }
   if (her) return her;
   return {n:'Numerador', d:'Denominador'};
 }
@@ -960,14 +961,15 @@ function chartOptions(kpi, vals, ndSerie){
           var arr = ndSerie[c.datasetIndex]; if (!arr) return;
           var nd = arr[c.dataIndex]; if (!nd || nd.num==null || nd.den==null) return;
           var np=nombresParam(kpi); var lblN=np.n, lblD=np.d;
-          /* Formato num/den: decide por el ID del parámetro (semántico y estable), no por el texto de la etiqueta.
-             Un label como 'Cuentas en Cartera Global' NO debe imprimirse como moneda. */
-          var RX_CONTEO=/^(cuentas|clientes|piezas|productos|pedidos|colaboradores|puestos|procesos|tareas|vehiculos|garantias|oc_|km_|litros|bienes|claves|respuestas|iniciativas|mantenimientos|contados|programados|surtidos|requisiciones|plantilla|alineadas|certificados|cubiertos|cumplieron|resueltas|pct_|num_)/i;
-          var RX_DINERO=/^(dinero|valor|monto|importe|vta|ventas|inv_|capital|descuento|precio|costo|ingreso|utilidad|presupuesto)/i;
-          var esMoney=function(l,id){ if (id){ if (RX_CONTEO.test(id)) return false; if (RX_DINERO.test(id)) return true; }
-            return /dinero|valor|cartera|monto|importe|\$|peso|venta|ingreso|capital/i.test(l||''); };
-          var fc=function(v,l,id){ var n=Number(v).toLocaleString('es-MX',{maximumFractionDigits:0}); return esMoney(l,id)?'$'+n:n; };
-          return [lblN+': '+fc(nd.num,lblN,np.idN), lblD+': '+fc(nd.den,lblD,np.idD)];
+          /* Formato num/den: la unidad se DECLARA en cada campo (u:), no se adivina.
+             u = 'moneda' | 'conteo' | 'pct' | 'km' | 'L'. Sin u declarada -> conteo. */
+          var fc=function(v,u){ var n=Number(v).toLocaleString('es-MX',{maximumFractionDigits:0});
+            if (u==='moneda') return '$'+n;
+            if (u==='pct')    return n+'%';
+            if (u==='km')     return n+' km';
+            if (u==='L')      return n+' L';
+            return n; };
+          return [lblN+': '+fc(nd.num,np.uN), lblD+': '+fc(nd.den,np.uD)];
         }}} },
     scales:{ x:{ticks:{font:{size:11}, color:'#475569'}, grid:{display:false}},
       y:{ticks:{font:{size:11}, color:'#475569', callback:fv}, min:y.min, max:y.max, grid:{color:'#f0f0f0'}} }
