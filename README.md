@@ -1,3 +1,3 @@
 # mapas-bsc
 
-<!-- redeploy 2026-07-19 -->
+<!-- redeploy 2026-07-20 -->
