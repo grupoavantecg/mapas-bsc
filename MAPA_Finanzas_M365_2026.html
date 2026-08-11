@@ -473,7 +473,7 @@ function subPeriodos(derivCad, srcCad, periodKey){
     for (var i=1;i<=12;i++) a.push(y+'-'+pad2(i)); return a; }
   return [periodKey];
 }
-function esRatio(kpi){ return !!(kpi.campos && kpi.campos.length>=2 && (kpi.unidad||'%')==='%'); }
+function esRatio(kpi){ return !!(kpi.campos && kpi.campos.length>=2 && (kpi.unidad||'%')==='%' || kpi.unidad==='pts'); }
 /* ===== Periodo en curso / meta a la fecha (prorrateo) ===== */
 function diaHoyUTC(){ var n = new Date(); return Date.UTC(n.getFullYear(), n.getMonth(), n.getDate()); }
 function inicioPeriodo(key){ var c = cadenciaDeKey(key);
@@ -499,10 +499,17 @@ function fraccionTranscurrida(key){
   var dias = (h - inicioPeriodo(key)) / 86400000 + 1; return Math.max(0, Math.min(1, dias/7));
 }
 /* Meta ajustada al periodo: prorrateada si está EN CURSO y el KPI es acumulativo (no ratio). */
-function metaEfectiva(kpi, periodo){
-  if (kpi.meta == null) return null;
-  if (periodo && enCurso(periodo) && kpi.acumulativo !== false && !esRatio(kpi) && (kpi.unidad||'%') !== '%') return kpi.meta * fraccionTranscurrida(periodo);
+/* Meta con VIGENCIA por año: kpi.metaAnio={'2025':110000,...}. Sin vigencia declarada rige kpi.meta (Config_KPI). */
+function metaVigente(kpi, periodo){
+  var mv = kpi.metaAnio;
+  if (mv && periodo){ var a = String(periodo).slice(0,4); if (mv[a] != null) return mv[a]; }
   return kpi.meta;
+}
+function metaEfectiva(kpi, periodo){
+  var m = metaVigente(kpi, periodo);
+  if (m == null) return null;
+  if (periodo && enCurso(periodo) && kpi.acumulativo !== false && !esRatio(kpi) && (kpi.unidad||'%') !== '%') return m * fraccionTranscurrida(periodo);
+  return m;
 }
 function aggDe(kpi){ return kpi.agregacion || (esRatio(kpi) ? 'ponderado' : 'promedio'); }
 function clon(o){ var r={}; for (var k in o) r[k]=o[k]; return r; }
@@ -511,6 +518,7 @@ function clon(o){ var r={}; for (var k in o) r[k]=o[k]; return r; }
 function ndSlot(kpi, slot, periodKey){
   if (!esRatio(kpi)) return null; /* solo ratios tienen num/den */
   var d = cap(periodKey, slot); if (!d) return null;
+  if (kpi.nd){ var o = kpi.nd(d.valores); return (o && !isNaN(o.num) && !isNaN(o.den)) ? o : null; }
   var n = Number(d.valores[kpi.campos[0].id]), q = Number(d.valores[kpi.campos[1].id]);
   if (isNaN(n) || isNaN(q)) return null;
   return {num:n, den:q};
@@ -561,7 +569,7 @@ function valorEficaciaMeta(kpi, ent, periodKey){
   if (cadenciaDeKey(periodKey) !== 'trimestral') return null;
   var wks = []; mesesDeTrimestre(periodKey).forEach(function(m){ wks = wks.concat(isoWeeksOfMonth(m)); });
   var con = 0, ok = 0;
-  wks.forEach(function(wk){ var v = valSlot(ref, ref.id+'@'+ent, wk); if (v != null){ con++; if (v >= kpi.metaSem) ok++; } });
+  wks.forEach(function(wk){ var v = valSlot(ref, ref.id+'@'+ent, wk); if (v != null){ var ms = metaVigente(ref, wk); if (ms == null) ms = kpi.metaSem; con++; if (v >= ms) ok++; } });
   return con > 0 ? (ok / con * 100) : null;
 }
 /* Valor de un KPI de entidad, para una entidad, en un periodo de cualquier cadencia (ponderado entre semanas) */
@@ -823,8 +831,15 @@ function brechaHtml(kpi, valor, meta){
   var ok = sentido === 'max' ? valor >= meta : valor <= meta;
   if (ok) return '<div class="ch-val" style="color:#1F9D6B;">✓ Meta</div>';
   var d = sentido === 'max' ? (meta - valor) : (valor - meta);
-  var t = (kpi.unidad === '$') ? fmtVal(kpi, d) : fmt1(d) + (kpi.unidad === '%' ? '%' : '');
+  var t = fmtVal(kpi, d);
   return '<div class="ch-val" style="color:#EB002A;">−' + t + '</div>';
+}
+/* % de logro: lectura derivada de valor vs meta. Solo KPIs en $ (el ratio ya se lee en %). */
+function logroHtml(kpi, valor, meta, sem){
+  if ((kpi.unidad||'%') !== '$') return '';
+  if (meta == null) meta = kpi.meta;
+  if (valor == null || meta == null || !meta) return '';
+  return '<div class="ch-num"><div class="ch-lbl">Logro</div><div class="ch-val sem-t-'+sem+'">'+fmt1(valor/meta*100)+'%</div></div>';
 }
 function flechaTendencia(kpi, actual, previo){
   if (actual == null || previo == null) return '';
@@ -863,7 +878,7 @@ function renderKpiCard(kpi, full){
   var cursoChip = '';
   if (periodo && enCurso(periodo)){
     var fr = Math.round(fraccionTranscurrida(periodo)*100);
-    var metaTxt = (metaEf != null && metaEf !== kpi.meta) ? ' · meta a la fecha ' + fmtVal(kpi, metaEf) : '';
+    var metaTxt = (metaEf != null && metaEf !== metaVigente(kpi, periodo)) ? ' · meta a la fecha ' + fmtVal(kpi, metaEf) : '';
     cursoChip = '<span style="background:#fff7e6;color:#a16207;font-size:10px;font-weight:700;padding:3px 8px;border-radius:12px;" title="Periodo en curso: transcurrido '+fr+'%'+(metaTxt?'; el sem\u00e1foro y la brecha comparan contra la meta prorrateada a la fecha':'')+'">\u23f3 En curso '+fr+'%'+metaTxt+'</span>';
   }
   var derivadoMarca = er ? (er.tipo === 'top' || er.tipo === 'leafAgg') : (esDerivado(kpi) || esCruzado(kpi));
@@ -888,8 +903,10 @@ function renderKpiCard(kpi, full){
       '<h3>'+kpi.nombre+'</h3>'+entLbl+'</div>' +
       '<div class="ch-right">' +
         '<div class="ch-num"><div class="ch-lbl">Resultado</div><div class="ch-val sem-t-'+sem+'">'+fmtVal(kpi, valor)+'</div></div>' +
-        '<div class="ch-num"><div class="ch-lbl">Meta</div><div class="ch-val">'+(kpi.meta==null?'—':'≥ '+fmtVal(kpi, kpi.meta))+'</div></div>' +
-        '<div class="ch-num"><div class="ch-lbl">Brecha</div>'+brechaHtml(kpi, valor, metaEf)+'</div>' +
+        '<div class="ch-num"><div class="ch-lbl">Meta</div><div class="ch-val">'+(metaVigente(kpi, periodo)==null?'—':'≥ '+fmtVal(kpi, metaVigente(kpi, periodo)))+'</div></div>' +
+        logroHtml(kpi, valor, metaEf, sem) +
+
+        '<div class=\"ch-num\"><div class=\"ch-lbl\">Brecha</div>'+brechaHtml(kpi, valor, metaEf)+'</div>' +
       '</div></div>' +
     badgeRow(kpi) +
     '<div class="chip-lane"><span style="font-size:10px;color:var(--muted);margin-right:auto;">'+laneInfo+'</span>' +
@@ -926,6 +943,7 @@ function ndOpe(kpi, er, periodKey){
 }
 /* Nombres de numerador/denominador: campos propios -> parametros de la formula -> KPI fuente */
 function nombresParam(kpi){
+  if (kpi.ndLabels) return {n:kpi.ndLabels.n, d:kpi.ndLabels.d, idN:null, idD:null, uN:kpi.ndLabels.uN||'conteo', uD:kpi.ndLabels.uD||'conteo'};
   if (kpi.campos && kpi.campos.length>=2) return {n:kpi.campos[0].label, d:kpi.campos[1].label, idN:kpi.campos[0].id, idD:kpi.campos[1].id, uN:kpi.campos[0].u||null, uD:kpi.campos[1].u||null};
   var src = kpi.entidadDerivada ? kpiById(kpi.entidadDerivada.src) : ((kpi.derivaDe&&kpi.derivaDe[0]) ? kpiById(kpi.derivaDe[0]) : null);
   var her = src ? nombresParam(src) : null;
@@ -961,7 +979,8 @@ function ejeY(kpi, vals){
 }
 function chartOptions(kpi, vals, ndSerie){
   var y = ejeY(kpi, vals);
-  var fv = function(v){ return (kpi.unidad === '$') ? '$'+Number(v).toLocaleString('es-MX',{maximumFractionDigits:0}) : (Math.round(v*10)/10)+'%'; };
+  var fv = function(v){ if (kpi.unidad === '$') return '$'+Number(v).toLocaleString('es-MX',{maximumFractionDigits:0});
+    return (Math.round(v*10)/10) + ((kpi.unidad||'%')==='%' ? '%' : ' '+kpi.unidad); };
   return { responsive:true, maintainAspectRatio:false, animation:false,
     plugins:{ legend:{display:true, position:'bottom', align:'center', labels:{font:{size:10}, padding:8, usePointStyle:true}},
       tooltip:{enabled:true, callbacks:{label:function(c){return c.dataset.label+': '+fv(c.parsed.y);},
@@ -1586,8 +1605,10 @@ async function syncInit(){
   var cfg = await gfetchAll('/sites/' + ids.site + '/lists/' + ids.config + '/items?expand=fields&$top=999');
   var n = 0;
   cfg.forEach(function(it){ var f = it.fields; if (gv(f, mCfg, 'Proceso') !== CONFIG.proceso) return;
-    var k = kpiById(f.Title); if (!k) return; var meta = gv(f, mCfg, 'Meta');
-    if (meta != null && meta !== '') { k.meta = Number(meta); n++; } });
+    var t = String(f.Title || ''), anio = null, sp = t.indexOf('|');
+    if (sp > 0){ anio = t.slice(sp+1).trim(); t = t.slice(0, sp).trim(); }
+    var k = kpiById(t); if (!k) return; var meta = gv(f, mCfg, 'Meta');
+    if (meta != null && meta !== '') { if (anio){ k.metaAnio = k.metaAnio || {}; k.metaAnio[anio] = Number(meta); } else { k.meta = Number(meta); n++; } } });
   state.configLoaded = n > 0;
   var mCap = await getColMap(ids.capturas);
   var cap = await gfetchAll('/sites/' + ids.site + '/lists/' + ids.capturas + '/items?expand=fields&$top=999');
