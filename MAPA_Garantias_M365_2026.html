@@ -68,6 +68,7 @@ nav{display:flex;gap:4px;margin-bottom:var(--gap);background:var(--card);padding
 .kpi-block .lbl{font-size:9px;text-transform:uppercase;color:var(--muted);font-weight:700;letter-spacing:.4px;}
 .kpi-block .val{font-size:22px;font-weight:800;color:var(--azul);margin-top:2px;}
 .kpi-block .val.v{color:var(--verde);}.kpi-block .val.a{color:var(--amarillo);}.kpi-block .val.r{color:var(--rojo);}.kpi-block .val.g{color:var(--gris);}
+.ct-hint{font-size:10px;color:var(--muted);flex-basis:100%;margin-top:4px;line-height:1.4;}
 .kpi-meta-row{font-size:10px;color:var(--muted);display:flex;justify-content:space-between;border-top:1px dashed var(--border);padding-top:8px;margin-top:6px;}
 .kpi-meta-row strong{color:var(--azul);}
 .kpi-trend-box{margin-top:12px;height:200px;padding:10px;background:#fafbfc;border-radius:6px;}
@@ -949,7 +950,9 @@ function chartViewToggleHtml(){
   var v = state.chartView;
   return '<div class="chart-toggle"><span>Vista de gráficas:</span>' +
     '<button class="ct-btn'+(v==='12m'?' on':'')+'" onclick="setChartView(\'12m\')">Últimos 12 periodos</button>' +
-    '<button class="ct-btn'+(v==='yoy'?' on':'')+'" onclick="setChartView(\'yoy\')">Comparativa vs año anterior</button></div>';
+    '<button class="ct-btn'+(v==='yoy'?' on':'')+'" onclick="setChartView(\'yoy\')">Comparativa vs año anterior</button>' +
+    (v==='yoy' ? '<span class="ct-hint">Aplica a KPIs mensuales y trimestrales. Los semanales y los que se leen por entidad conservan su serie corrida, que ya incluye el año anterior.</span>' : '') +
+    '</div>';
 }
 function ejeY(kpi, vals){
   var nums = (vals||[]).filter(function(v){ return v!==null && !isNaN(v); });
@@ -989,17 +992,19 @@ function chartOptions(kpi, vals, ndSerie){
   };
 }
 function renderYoYChart(kpi, box){
-  var Y = new Date().getFullYear(), labels=[], actual=[], previo=[];
+  var Y = new Date().getFullYear(), labels=[], actual=[], previo=[], keysA=[], keysP=[];
   if (kpi.cadencia === 'trimestral'){
-    for (var i=1;i<=4;i++){ labels.push('Q'+i);
-      actual.push(valorKpiEnPeriodo(kpi, Y+'-Q'+i));
-      previo.push(valorKpiEnPeriodo(kpi, (Y-1)+'-Q'+i)); }
+    for (var i=1;i<=4;i++){ labels.push('Q'+i); keysA.push(Y+'-Q'+i); keysP.push((Y-1)+'-Q'+i); }
   } else {
     var meses=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-    for (var m=1;m<=12;m++){ labels.push(meses[m-1]);
-      actual.push(valorKpiEnPeriodo(kpi, Y+'-'+pad2(m)));
-      previo.push(valorKpiEnPeriodo(kpi, (Y-1)+'-'+pad2(m))); }
+    for (var m=1;m<=12;m++){ labels.push(meses[m-1]); keysA.push(Y+'-'+pad2(m)); keysP.push((Y-1)+'-'+pad2(m)); }
   }
+  actual = keysA.map(function(k){ return valorKpiEnPeriodo(kpi, k); });
+  previo = keysP.map(function(k){ return valorKpiEnPeriodo(kpi, k); });
+  /* Meta por AÑO: cada serie se juzga contra la meta vigente en su ejercicio (metaAnio). */
+  var metaA = keysA.map(function(k){ return metaEfectiva(kpi, k); });
+  var metaP = keysP.map(function(k){ return metaEfectiva(kpi, k); });
+  var metaDifiere = metaP.some(function(v,i){ return v != null && metaA[i] != null && v !== metaA[i]; });
   if (!actual.concat(previo).some(function(v){return v!==null;})){
     box.outerHTML = '<div class="kpi-trend-empty">Sin datos para la comparativa anual</div>'; return;
   }
@@ -1016,9 +1021,9 @@ function renderYoYChart(kpi, box){
     data:{ labels:labels, datasets:[
       {label:''+Y, data:actual, borderColor:'#003A5D', backgroundColor:'rgba(0,58,93,.10)', borderWidth:2.5, pointRadius:4, pointHoverRadius:6, tension:.3, fill:false, spanGaps:true},
       {label:''+(Y-1), data:previo, borderColor:'#8A9BAA', borderWidth:2, borderDash:[6,4], pointRadius:3, pointHoverRadius:5, tension:.3, fill:false, spanGaps:true},
-      {label:'Meta', data:labels.map(function(){return kpi.meta;}), borderColor:'#EB002A', borderDash:[5,4], borderWidth:2, pointRadius:0, fill:false}
-    ]},
-    options: chartOptions(kpi, actual.concat(previo), ndYoY)
+      {label:(metaDifiere?'Meta '+Y:'Meta'), data:metaA, borderColor:'#EB002A', borderDash:[5,4], borderWidth:2, pointRadius:0, fill:false}
+    ].concat(metaDifiere ? [{label:'Meta '+(Y-1), data:metaP, borderColor:'#F3A6B2', borderDash:[3,3], borderWidth:1.5, pointRadius:0, fill:false}] : [])},
+    options: chartOptions(kpi, actual.concat(previo, metaA, metaDifiere?metaP:[]), ndYoY)
   });
 }
 function renderTrendChart(kpi){
