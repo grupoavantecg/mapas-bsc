@@ -299,7 +299,7 @@ function fmtVal(kpi, v){ if (v == null) return '—';
   if ((kpi.unidad||'%') === '$') return '$' + Number(v).toLocaleString('es-MX',{maximumFractionDigits:0});
   return fmt1(v) + (kpi.unidad === '%' ? '%' : (' ' + (kpi.unidad||''))); }
 
-let state = { authenticated:false, data:{}, historia:{}, externo:{}, bitacora:[], currentPeriod:null, windowStatus:null, charts:{},
+let state = { authenticated:false, data:{}, historia:{}, externo:{}, bitacora:[], auditoria:[], currentPeriod:null, windowStatus:null, charts:{},
   userId:null, isAdmin:false, observador:false, entSel:{}, capCad:null, capPer:{} };
 state.chartView = localStorage.getItem(CONFIG.storageKey+'_chartview') || '12m';
 
@@ -1241,6 +1241,47 @@ function handleSaveCaptura(){
   });
 }
 
+
+/* ===== Bitácora central · derivada de Capturas_KPI (autoría de SharePoint) =====
+   Cada captura deja rastro en la lista: "Creado por" y "Modificado por".
+   El administrador ve los eventos de TODOS los colaboradores; el resto, solo los propios.
+   No requiere lista nueva ni permisos adicionales. */
+function idDeCuenta(email){ var u = resolveUser(email || ''); return (u && u.id) ? u.id : (email || '—'); }
+function eventosCentrales(){
+  var ev = [];
+  (state.auditoria || []).forEach(function(a){
+    ev.push({ ts:a.creado, usuario:idDeCuenta(a.creadoPor), accion:'alta', periodo:a.periodo, kpi:a.kpi,
+              entregaTardia:a.entregaTardia, justificacion:a.justificacion });
+    if (a.modificado && a.creado && (new Date(a.modificado) - new Date(a.creado)) > 60000)
+      ev.push({ ts:a.modificado, usuario:idDeCuenta(a.modificadoPor), accion:'edición', periodo:a.periodo, kpi:a.kpi,
+                entregaTardia:a.entregaTardia, justificacion:a.justificacion });
+  });
+  if (!state.isAdmin) ev = ev.filter(function(e){ return e.usuario === state.userId; });
+  ev.sort(function(x, y){ return new Date(y.ts) - new Date(x.ts); });
+  return ev;
+}
+function filaBitacora(ts, usuario, accion, periodo, kpi, tardia, just){
+  var f = ts ? new Date(ts).toLocaleString('es-MX',{dateStyle:'short',timeStyle:'short'}) : '—';
+  return '<tr>' +
+    '<td style="white-space:nowrap;font-size:10px;color:var(--muted);padding:6px 10px;">'+f+'</td>' +
+    '<td style="font-weight:700;padding:6px 10px;color:var(--azul);">'+(usuario||'—')+'</td>' +
+    '<td style="font-weight:600;padding:6px 10px;">'+(accion||'—')+'</td>' +
+    '<td style="padding:6px 10px;">'+(periodo||'—')+'</td>' +
+    '<td style="padding:6px 10px;">'+(kpi||'—')+'</td>' +
+    '<td style="padding:6px 10px;">'+(tardia?'⏱ tardía':'')+'</td>' +
+    '<td style="font-size:11px;color:var(--muted);padding:6px 10px;">'+(just||'')+'</td>' +
+  '</tr>';
+}
+function tablaBitacora(filas){
+  return '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:12px;">' +
+    '<thead><tr style="border-bottom:2px solid var(--border);text-align:left;">' +
+    '<th style="padding:8px 10px;">Fecha</th><th style="padding:8px 10px;">Registró</th><th style="padding:8px 10px;">Acción</th>' +
+    '<th style="padding:8px 10px;">Periodo</th><th style="padding:8px 10px;">KPI</th>' +
+    '<th style="padding:8px 10px;">Marca</th><th style="padding:8px 10px;">Justificación</th>' +
+    '</tr></thead><tbody>' +
+    (filas || '<tr><td colspan="7" style="text-align:center;padding:14px;color:var(--muted);">Sin eventos</td></tr>') +
+    '</tbody></table></div>';
+}
 function renderHistorial(){
   var hoy = new Date(); var meses = [];
   for (var i = 11; i >= 0; i--) {
@@ -1263,30 +1304,22 @@ function renderHistorial(){
   bar += '</div>';
   var labels = '<div style="display:flex;gap:3px;margin-top:6px;font-size:10px;color:var(--muted);">' +
     meses.map(function(m){ return '<span style="width:24px;text-align:center;">'+m.label.split(' ')[0].slice(0,3)+'</span>'; }).join('') + '</div>';
-  var rows = state.bitacora.slice().reverse().slice(0, 50).map(function(b){
-    var f = new Date(b.timestamp).toLocaleString('es-MX',{dateStyle:'short',timeStyle:'short'});
-    return '<tr>' +
-      '<td style="white-space:nowrap;font-size:10px;color:var(--muted);padding:6px 10px;">'+f+'</td>' +
-      '<td style="font-weight:700;padding:6px 10px;color:var(--azul);">'+(b.usuario||'—')+'</td>' +
-      '<td style="font-weight:600;padding:6px 10px;">'+b.accion+'</td>' +
-      '<td style="padding:6px 10px;">'+(b.periodo||'—')+'</td>' +
-      '<td style="padding:6px 10px;">'+(b.kpi||'—')+'</td>' +
-      '<td style="padding:6px 10px;">'+(b.entregaTardia?'⏱ tardía':'')+'</td>' +
-      '<td style="font-size:11px;color:var(--muted);padding:6px 10px;">'+(b.justificacion||'')+'</td>' +
-    '</tr>';
-  }).join('');
+  var evc = eventosCentrales();
+  var filasCentral = evc.slice(0, 100).map(function(e){
+    return filaBitacora(e.ts, e.usuario, e.accion, e.periodo, e.kpi, e.entregaTardia, e.justificacion); }).join('');
+  var filasLocal = state.bitacora.slice().reverse().slice(0, 50).map(function(b){
+    return filaBitacora(b.timestamp, b.usuario, b.accion, b.periodo, b.kpi, b.entregaTardia, b.justificacion); }).join('');
+  var subCentral = state.isAdmin
+    ? 'Todos los colaboradores · ' + evc.length + ' evento(s) de captura registrados en ' + CONFIG.proceso + '. Autoría tomada de "Creado por" / "Modificado por" en Capturas_KPI (SharePoint).'
+    : 'Tus eventos de captura en ' + CONFIG.proceso + '. El administrador ve los de todo el equipo.';
   document.getElementById('tab-historial').innerHTML =
     '<div class="captura-box"><h2>Historial de cumplimiento · últimos 12 meses</h2>' +
     '<div class="sub">✓ con captura · ⏱ tardía · — sin entrega. La fuente de verdad de autoría es "Creado por" en SharePoint.</div>' + bar + labels + '</div>' +
-    '<div class="captura-box"><h2>Bitácora reciente · últimos 50 eventos</h2>' +
-    '<div class="sub">Cada acción queda registrada con marca de tiempo y colaborador (Registró).</div>' +
-    '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:12px;">' +
-    '<thead><tr style="border-bottom:2px solid var(--border);text-align:left;">' +
-    '<th style="padding:8px 10px;">Fecha</th><th style="padding:8px 10px;">Registró</th><th style="padding:8px 10px;">Acción</th>' +
-    '<th style="padding:8px 10px;">Periodo</th><th style="padding:8px 10px;">KPI</th>' +
-    '<th style="padding:8px 10px;">Marca</th><th style="padding:8px 10px;">Justificación</th>' +
-    '</tr></thead><tbody>' + (rows || '<tr><td colspan="7" style="text-align:center;padding:14px;color:var(--muted);">Sin eventos</td></tr>') +
-    '</tbody></table></div></div>';
+    '<div class="captura-box"><h2>Bitácora central · captura de indicadores' + (state.isAdmin ? ' · todos los usuarios' : '') + '</h2>' +
+    '<div class="sub">' + subCentral + '</div>' + tablaBitacora(filasCentral) + '</div>' +
+    '<div class="captura-box"><h2>Actividad en este equipo · últimos 50 eventos</h2>' +
+    '<div class="sub">Bitácora local del navegador de este equipo: incluye inicio y cierre de sesión y exportaciones. No viaja entre usuarios.</div>' +
+    tablaBitacora(filasLocal) + '</div>';
 }
 
 function switchTab(t){
@@ -1616,6 +1649,7 @@ async function syncInit(){
   var mCap = await getColMap(ids.capturas);
   var cap = await gfetchAll('/sites/' + ids.site + '/lists/' + ids.capturas + '/items?expand=fields&$top=999');
   state.itemIndex = {};
+  state.auditoria = [];
   var extProcs = CONFIG.procesosExternos || [];
   if (extProcs.length) state.externo = {};
   cap.forEach(function(it){
@@ -1631,7 +1665,14 @@ async function syncInit(){
       return;
     }
     if (!per || !f.Title) return;
+    var raw0 = gv(f, mCap, 'Campos');
     state.itemIndex[itemKey(f.Title, per)] = it.id;
+    (function(){ var cb = it.createdBy && it.createdBy.user, mb = it.lastModifiedBy && it.lastModifiedBy.user;
+      var _ex = {}; try { _ex = raw0 ? JSON.parse(raw0) : {}; } catch(e){}
+      state.auditoria.push({ periodo:per, kpi:f.Title,
+        creadoPor:(cb && (cb.email || cb.displayName)) || null, creado: it.createdDateTime,
+        modificadoPor:(mb && (mb.email || mb.displayName)) || null, modificado: it.lastModifiedDateTime,
+        entregaTardia: !!_ex.entregaTardia, justificacion: gv(f, mCap, 'Comentario') || '' }); })();
     var raw = gv(f, mCap, 'Campos'); var extra = {}; try { extra = raw ? JSON.parse(raw) : {}; } catch(e){}
     if (!state.data[per]) state.data[per] = {};
     state.data[per][f.Title] = { valores: extra.valores || {}, justificacion: gv(f, mCap, 'Comentario') || '',
