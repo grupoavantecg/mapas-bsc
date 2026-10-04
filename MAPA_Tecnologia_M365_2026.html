@@ -242,12 +242,12 @@ const CONFIG = { proceso:'Gestión de la Tecnología', procesoCode:'tecnologia',
   responsable:'EBG', responsableNombre:'Efraín',
   ventanaInicio:1, ventanaFin:7, storageKey:'ga_proc_tecnologia', version:'3.0', historiaUrl:null,
   usuarios:{
-    'luisecasillas@casamobel.mx':{id:'LECG', admin:true, procesos:'*'},
+    'luisecasillas@casamobel.mx':{id:'LECG', admin:true, purga:true, procesos:'*'},
     'econhogar@casamobel.mx':{id:'MAJR', procesos:['Cobranza','Ventas','Atracción y Satisfacción del Cliente']},
     'contabilidad@casamobel.mx':{id:'CRL', procesos:['Finanzas']},
     'proveeduria@casamobel.mx':{id:'ERR', procesos:['Innovación y Desarrollo de Productos y Servicios','Planeación de la Demanda','Compras','Almacén','Gestión de las Garantías y Servicios']},
     'control@casamobel.mx':{id:'LAOD', procesos:['Gestión de la Infraestructura','Gestión de los Recursos Materiales y Servicios']},
-    'administracion@casamobel.mx':{id:'EBG', procesos:['Gestión de la Tecnología']},
+    'administracion@casamobel.mx':{id:'EBG', admin:true, procesos:['Gestión de la Tecnología']},
     'desarrollohumano@casamobel.mx':{id:'ISC', procesos:['Gestión del Talento','Gestión del Ambiente de Trabajo']},
     'mzermeno@casamobel.mx':{id:'MZG', procesos:'*', soloLectura:true},
     'coordinacion@casamobel.mx':{id:'AGG', procesos:['Innovación y Desarrollo de Productos y Servicios','Planeación de la Demanda']},
@@ -305,7 +305,8 @@ function resolveUser(email){
   var u = CONFIG.usuarios[e];
   if (!u) return { id:e, permitido:false, admin:false };
   var permitido = u.admin || u.procesos === '*' || (u.procesos||[]).indexOf(CONFIG.proceso) >= 0;
-  return { id:u.id, permitido:permitido, admin:!!u.admin, observador:!!u.soloLectura };
+  return { id:u.id, permitido:permitido, admin:!!u.admin, observador:!!u.soloLectura,
+    puedePurgar:!!(u.admin && u.purga) }; /* P20: Purga/Depuración solo con purga:true (LECG) */
 }
 
 /* Lectura a través de historia estática (solo lectura) + buffer vivo. El vivo prevalece. */
@@ -1314,9 +1315,13 @@ function renderHistorial(){
     '<div class="sub">✓ con captura · ⏱ tardía · — sin entrega. La fuente de verdad de autoría es "Creado por" en SharePoint.</div>' + bar + labels + '</div>' +
     '<div class="captura-box"><h2>Bitácora central · captura de indicadores' + (state.isAdmin ? ' · todos los usuarios' : '') + '</h2>' +
     '<div class="sub">' + subCentral + '</div>' + tablaBitacora(filasCentral) + '</div>' +
+    (state.isAdmin ? '<div class="captura-box"><h2>Bitácora de administración · Bitacora_Admin</h2>' +
+      '<div class="sub">Acciones de administración en ' + CONFIG.proceso + ' (Inicializar, Cargar historia, Purga, Depurar, Sincronizar, Borrar datos locales). Lista central en SharePoint; usuario tomado de "Creado por". Últimas 100.</div>' +
+      '<div id="bita-admin-body" style="font-size:12px;color:var(--muted);">Cargando…</div></div>' : '') +
     '<div class="captura-box"><h2>Actividad en este equipo · últimos 50 eventos</h2>' +
     '<div class="sub">Bitácora local del navegador de este equipo: incluye inicio y cierre de sesión y exportaciones. No viaja entre usuarios.</div>' +
     tablaBitacora(filasLocal) + '</div>';
+  if (state.isAdmin) cargarBitacoraAdmin();
 }
 
 function switchTab(t){
@@ -1380,7 +1385,8 @@ document.addEventListener('DOMContentLoaded', function(){
   document.getElementById('btn-login-action').onclick = msalLogin;
   document.getElementById('btn-logout').onclick = logout;
   document.getElementById('btn-export').onclick = exportJSON;
-  document.getElementById('btn-sync').onclick = function(){ syncInit().then(function(){ renderPanel(); showToast('✓ Sincronizado','success'); }).catch(function(){}); };
+  document.getElementById('btn-sync').onclick = function(){ syncInit().then(function(){ renderPanel(); showToast('✓ Sincronizado','success');
+    if (state.isAdmin) adminLog('Sincronizar', 'Sincronización manual · ' + (state.configDuplicados && state.configDuplicados.length ? state.configDuplicados.length + ' KPI(s) duplicados en Config_KPI' : 'Config_KPI sin duplicados')).catch(function(){}); }).catch(function(){}); };
   document.getElementById('btn-admin').onclick = openAdmin;
   document.getElementById('admin-close').onclick = closeAdmin;
   document.getElementById('btn-init-config').onclick = function(){ document.getElementById('file-config').click(); };
@@ -1388,8 +1394,11 @@ document.addEventListener('DOMContentLoaded', function(){
   document.getElementById('file-config').addEventListener('change', adminInitConfig);
   document.getElementById('file-hist').addEventListener('change', adminImportHist);
   var bp = document.getElementById('btn-purga-historia'); if (bp) bp.onclick = adminPurgaHistoria;
-  document.getElementById('btn-reset-local').onclick = function(){
+  var bd = document.getElementById('btn-depurar-config'); if (bd) bd.onclick = adminDepurarConfig;
+  document.getElementById('btn-reset-local').onclick = async function(){
     if (!confirm('¿Borrar los datos locales de este navegador? Las capturas ya sincronizadas en el servidor NO se pierden.')) return;
+    try { await adminLog('Borrar datos locales', 'Navegador de ' + (state.cuenta || state.userId)); }
+    catch(e){ adminMsg('⚠ ' + (e.message || e)); return; }
     localStorage.removeItem(CONFIG.storageKey + '_data');
     localStorage.removeItem(CONFIG.storageKey + '_log');
     localStorage.removeItem(CONFIG.storageKey + '_pend');
@@ -1414,8 +1423,10 @@ document.addEventListener('DOMContentLoaded', function(){
       <button class="btn btn-primary" id="btn-init-config">1 · Inicializar Config_KPI (subir spec JSON)</button>
       <button class="btn btn-primary" id="btn-import-hist">2 · Cargar historia (JSON, solo lectura — no se sube)</button>
       <button class="btn btn-secondary" id="btn-reset-local">3 · Borrar datos locales de este navegador (el servidor no se toca)</button>
-      <button class="btn btn-secondary" id="btn-purga-historia" style="border-color:#EB002A;color:#EB002A;">4 · Purgar filas históricas ya subidas a la lista (deja solo capturas nuevas)</button>
+      <button class="btn btn-secondary" id="btn-purga-historia" style="border-color:#EB002A;color:#EB002A;display:none;">4 · Purgar filas históricas ya subidas a la lista (solo LECG)</button>
+      <button class="btn btn-secondary" id="btn-depurar-config" style="border-color:#EB002A;color:#EB002A;display:none;">5 · Depurar filas duplicadas de Config_KPI (solo LECG · descarga respaldo)</button>
     </div>
+    <p style="font-size:11px;color:var(--muted);margin:0 0 6px;">Cada acción queda registrada en la lista central <strong>Bitacora_Admin</strong> (usuario, acción, proceso, detalle y fecha). Sin bitácora disponible, la acción no se ejecuta.</p>
     <div id="admin-status" style="font-size:12px;color:var(--muted);min-height:18px;"></div>
     <input type="file" id="file-config" accept=".json" style="display:none">
     <input type="file" id="file-hist" accept=".json" style="display:none">
@@ -1529,7 +1540,10 @@ async function msalLogin(){
       return;
     }
     state.userId = u.id; state.isAdmin = u.admin; state.observador = !!u.observador;
+    state.puedePurgar = !!u.puedePurgar; state.cuenta = acct.username;
     var ba = document.getElementById('btn-admin'); if (ba) ba.style.display = state.isAdmin ? '' : 'none';
+    ['btn-purga-historia','btn-depurar-config'].forEach(function(id){ var b = document.getElementById(id);
+      if (b) b.style.display = state.puedePurgar ? '' : 'none'; });
     if (state.observador){ /* rol solo lectura: sin captura */
       var bc = document.querySelector('.tab-btn[data-tab="captura"]'); if (bc) bc.style.display = 'none';
       var ch = document.getElementById('chip-user'); if (ch) ch.setAttribute('title','Rol observador · solo lectura');
@@ -1637,6 +1651,10 @@ async function syncInit(){
   var mCfg = await getColMap(ids.config);
   var cfg = await gfetchAll('/sites/' + ids.site + '/lists/' + ids.config + '/items?expand=fields&$top=999');
   var n = 0;
+  /* P27: si un KPI tiene varias filas, gana la ÚLTIMA MODIFICADA (empate: id mayor). Regla determinista,
+     la misma que conserva Admin · Depurar duplicados. */
+  cfg = ordenCfg(cfg);
+  state.configDuplicados = duplicadosCfg(cfg, mCfg);
   cfg.forEach(function(it){ var f = it.fields; if (gv(f, mCfg, 'Proceso') !== CONFIG.proceso) return;
     var t = String(f.Title || ''), anio = null, sp = t.indexOf('|');
     if (sp > 0){ anio = t.slice(sp+1).trim(); t = t.slice(0, sp).trim(); }
@@ -1679,7 +1697,8 @@ async function syncInit(){
   await flushPending();
   var pend = getPending().length;
   setSyncMsg(!state.configLoaded ? '⚠ Config_KPI sin datos de este proceso — usa Admin · Inicializar'
-    : (pend ? '⚠ ' + pend + ' captura(s) pendientes de subir' : '☁ Sincronizado ' + new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })));
+    : (pend ? '⚠ ' + pend + ' captura(s) pendientes de subir' : '☁ Sincronizado ' + new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }))
+      + (state.isAdmin && state.configDuplicados.length ? ' · ⚠ Config_KPI: ' + state.configDuplicados.length + ' KPI(s) con filas duplicadas' : ''));
 }
 
 function getPending(){ try { return JSON.parse(localStorage.getItem(CONFIG.storageKey + '_pend') || '[]'); } catch(e){ return []; } }
@@ -1780,55 +1799,143 @@ async function flushPending(){
 }
 
 // ---------- Admin ----------
-function openAdmin(){ document.getElementById('modal-admin').classList.remove('hidden'); }
+/* ===== P20 · Bitacora_Admin · trazabilidad central de acciones de administración (2026-10-04) =====
+   Lista Bitacora_Admin en Sistemadegestin2: Title, Usuario, Accion, Proceso, Detalle, Fecha.
+   Regla fail-closed: toda acción admin escribe primero una fila "inicio"; si no se puede escribir,
+   la acción NO se ejecuta. Al terminar escribe el resultado. La autoría independiente es
+   "Creado por" de SharePoint (no editable desde el MAPA). */
+M365.listaBitacora = 'Bitacora_Admin';
+var BITA_ID = null;
+async function resolveBitacora(){
+  if (BITA_ID) return BITA_ID;
+  var c = sessionStorage.getItem('ga_bita_id'); if (c) { BITA_ID = c; return BITA_ID; }
+  var ids = await resolveIds();
+  var lists = await gfetch('/sites/' + ids.site + '/lists?$select=id,displayName&$top=200');
+  var norm = function(s){ return (s||'').toLowerCase().replace(/[\s_]+/g,''); };
+  var l = lists.value.find(function(x){ return norm(x.displayName) === norm(M365.listaBitacora); });
+  if (!l) throw new Error('No se encontró la lista ' + M365.listaBitacora + ' (o tu cuenta no tiene acceso). Sin bitácora no se ejecutan acciones de administración.');
+  BITA_ID = l.id; sessionStorage.setItem('ga_bita_id', BITA_ID); return BITA_ID;
+}
+function recorta(s, n){ s = String(s == null ? '' : s); return s.length > n ? s.slice(0, n - 1) + '…' : s; }
+async function adminLog(accion, detalle){
+  if (!state.isAdmin) throw new Error('Acción reservada al administrador.');
+  var ids = await resolveIds(); var bid = await resolveBitacora(); var m = await getColMap(bid);
+  var fields = mapFieldsSync(m, { Title: recorta(accion + ' · ' + CONFIG.proceso, 255), Usuario: recorta(state.userId + ' · ' + (state.cuenta || ''), 255),
+    Accion: recorta(accion, 255), Proceso: CONFIG.proceso, Detalle: recorta(detalle, 255), Fecha: new Date().toISOString() },
+    ['Usuario', 'Accion', 'Proceso', 'Detalle']);
+  await gfetch('/sites/' + ids.site + '/lists/' + bid + '/items', { method:'POST', body: JSON.stringify({ fields: fields }) });
+  logBitacora({ accion:'admin: ' + accion, detalle: detalle });
+  return true;
+}
+/* Abre la acción: valida rol (y Purga si aplica) y escribe la fila "inicio". Lanza si no procede. */
+async function adminInicio(accion, detalle, requierePurga){
+  if (!state.isAdmin) throw new Error('Acción reservada al administrador.');
+  if (requierePurga && !state.puedePurgar) throw new Error(accion + ' está reservada a LECG.');
+  await adminLog(accion, 'inicio · ' + detalle);
+}
+/* Cierra la acción: escribe el resultado; si falla, lo deja en la bitácora local y avisa. */
+async function adminFin(accion, detalle){
+  try { await adminLog(accion, detalle); }
+  catch(e){ logBitacora({ accion:'admin: ' + accion + ' (SIN registro central)', detalle: detalle });
+    showToast('⚠ La acción terminó pero no se pudo registrar el cierre en Bitacora_Admin', 'error'); }
+}
+
+function openAdmin(){ if (!state.isAdmin) return; document.getElementById('modal-admin').classList.remove('hidden'); }
 function closeAdmin(){ document.getElementById('modal-admin').classList.add('hidden'); document.getElementById('admin-status').textContent = ''; }
 function adminMsg(m){ document.getElementById('admin-status').textContent = m; }
 function readFile(inp){ return new Promise(function(res, rej){ var f = inp.files[0]; if (!f) return rej('sin archivo');
   var r = new FileReader(); r.onload = function(){ try { res(JSON.parse(r.result)); } catch(e){ rej('JSON inválido'); } }; r.readAsText(f); }); }
 
+/* ===== P27 · Config_KPI: orden y detección de duplicados ===== */
+function ordenCfg(items){
+  return items.slice().sort(function(a, b){
+    var ta = new Date(a.lastModifiedDateTime || 0) - 0, tb = new Date(b.lastModifiedDateTime || 0) - 0;
+    if (ta !== tb) return ta - tb; return (parseInt(a.id, 10) || 0) - (parseInt(b.id, 10) || 0); });
+}
+function claveCfg(f){ return String(f.Title || '').trim(); }
+/* Devuelve [{title, items:[...]}] de este proceso con más de una fila (items en orden: el último es el vigente). */
+function duplicadosCfg(cfgOrdenado, mCfg){
+  var g = {};
+  cfgOrdenado.forEach(function(it){ var f = it.fields; if (gv(f, mCfg, 'Proceso') !== CONFIG.proceso) return;
+    var k = claveCfg(f); if (!k) return; (g[k] = g[k] || []).push(it); });
+  return Object.keys(g).filter(function(k){ return g[k].length > 1; }).map(function(k){ return { title:k, items:g[k] }; });
+}
+var CFG_COMPARA = ['Nombre','Nivel','Meta','RangoVerde','RangoNaranja','RangoRojo','DerivaDe','Agregacion','Frecuencia'];
+function firmaCfg(f, mCfg){ return CFG_COMPARA.map(function(c){ var v = gv(f, mCfg, c); return (v == null ? '' : String(v).trim()); }).join('¦'); }
+function descargaJSON(obj, fn){
+  var b = new Blob([JSON.stringify(obj, null, 2)], {type:'application/json'}); var u = URL.createObjectURL(b);
+  var a = document.createElement('a'); a.href = u; a.download = fn; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function(){ URL.revokeObjectURL(u); }, 2000);
+}
+function sello(){ var d = new Date(); return d.getFullYear() + pad2(d.getMonth()+1) + pad2(d.getDate()) + '_' + pad2(d.getHours()) + pad2(d.getMinutes()); }
+
 var NIVEL_MAP = { estrategico: 'Estratégico', tactico: 'Táctico', operativo: 'Operativo' };
+/* Inicializar Config_KPI = UPSERT por Title+Proceso (P27: antes siempre hacía POST y duplicaba filas). */
 async function adminInitConfig(){
+  var accion = 'Inicializar Config_KPI', iniciado = false;
   try {
-    var spec = await readFile(document.getElementById('file-config'));
+    var inp = document.getElementById('file-config'); var fname = inp.files[0] ? inp.files[0].name : '';
+    var spec = await readFile(inp);
     var kpis = spec.kpis || []; var proc = (spec.config && spec.config.proceso) || CONFIG.proceso;
+    if (proc !== CONFIG.proceso) throw new Error('El spec es del proceso "' + proc + '"; este MAPA es "' + CONFIG.proceso + '". Usa el MAPA de ese proceso.');
     var ids = await resolveIds(); var mCfg = await getColMap(ids.config);
     var recs = kpis.filter(function(k){ return k.activo !== false; });
+    adminMsg('Leyendo Config_KPI…');
+    var cfg = ordenCfg(await gfetchAll('/sites/' + ids.site + '/lists/' + ids.config + '/items?expand=fields&$top=999'));
+    var dups = duplicadosCfg(cfg, mCfg);
+    if (dups.length) throw new Error('Config_KPI tiene ' + dups.length + ' KPI(s) con filas duplicadas (' + dups.map(function(d){ return d.title; }).join(', ') + '). LECG debe depurarlas antes de inicializar.');
+    var existentes = {};
+    cfg.forEach(function(it){ if (gv(it.fields, mCfg, 'Proceso') === CONFIG.proceso) existentes[claveCfg(it.fields)] = it.id; });
+    var nUpd = recs.filter(function(k){ return existentes[k.id]; }).length, nNew = recs.length - nUpd;
+    if (!confirm('Inicializar Config_KPI de ' + CONFIG.proceso + ' con ' + fname + ':\n· ' + nNew + ' KPI(s) nuevos\n· ' + nUpd + ' KPI(s) existentes se ACTUALIZAN (meta, nivel, rangos, cascada)\n¿Continuar?')){ adminMsg('Cancelado.'); return; }
+    await adminInicio(accion, fname + ' · ' + nNew + ' nuevos, ' + nUpd + ' a actualizar'); iniciado = true;
     var reqs = recs.map(function(k, i){
       var fac = (k.nivel === 'estrategico') ? '92%' : '90%';
       var fields = { Title: k.id, Proceso: proc, Nombre: k.nombre || k.id, Nivel: NIVEL_MAP[k.nivel] || k.nivel,
         Meta: (k.meta != null ? Number(k.meta) : null), RangoVerde: '≥ meta', RangoNaranja: '≥ ' + fac + ' de la meta', RangoRojo: '< ' + fac + ' de la meta',
         DerivaDe: (k.derivaDe || []).join(','), Agregacion: k.agregacion || '', Frecuencia: k.cadencia || 'mensual' };
       if (fields.Meta == null) delete fields.Meta; if (!fields.Agregacion) delete fields.Agregacion;
-      return { id:''+i, method:'POST', url:'/sites/'+ids.site+'/lists/'+ids.config+'/items', headers:{'Content-Type':'application/json'}, body:{ fields: mapFieldsSync(mCfg, fields, ['Title','Proceso','Nombre']) } };
+      var body = mapFieldsSync(mCfg, fields, ['Title','Proceso','Nombre']);
+      var idEx = existentes[k.id];
+      return idEx
+        ? { id:''+i, method:'PATCH', url:'/sites/'+ids.site+'/lists/'+ids.config+'/items/'+idEx+'/fields', headers:{'Content-Type':'application/json'}, body: body }
+        : { id:''+i, method:'POST', url:'/sites/'+ids.site+'/lists/'+ids.config+'/items', headers:{'Content-Type':'application/json'}, body:{ fields: body } };
     });
-    var ok = 0;
+    var ok = 0, err = 0;
     for (var s = 0; s < reqs.length; s += 20){ var chunk = reqs.slice(s, s + 20);
       var resp = await gbatch(chunk, adminMsg);
-      Object.keys(resp).forEach(function(id){ if (resp[id].status >= 200 && resp[id].status < 300) ok++; });
-      adminMsg('Subiendo Config_KPI ' + ok + '/' + reqs.length + '…'); await sleep(400);
+      Object.keys(resp).forEach(function(id){ if (resp[id].status >= 200 && resp[id].status < 300) ok++; else err++; });
+      adminMsg('Config_KPI ' + ok + '/' + reqs.length + '…'); await sleep(400);
     }
-    adminMsg('✓ ' + ok + ' KPIs cargados en Config_KPI. Presiona ☁ Sincronizar.');
-  } catch(e) { adminMsg('⚠ Error: ' + (e.message || e)); }
+    await adminFin(accion, 'resultado · ' + ok + '/' + reqs.length + ' OK (' + nNew + ' nuevos, ' + nUpd + ' actualizados)' + (err ? ' · ' + err + ' con error' : ''));
+    adminMsg('✓ ' + ok + ' KPIs escritos en Config_KPI (' + nNew + ' nuevos, ' + nUpd + ' actualizados). Presiona ☁ Sincronizar.');
+  } catch(e) { adminMsg('⚠ Error: ' + (e.message || e)); if (iniciado) await adminFin(accion, 'error · ' + (e.message || e)); }
   document.getElementById('file-config').value = '';
 }
 
 /* Botón 2 repropósito: cargar historia estática desde archivo local (solo lectura, NO se sube) */
 async function adminImportHist(){
   try {
-    var exp = await readFile(document.getElementById('file-hist'));
+    var inp = document.getElementById('file-hist'); var fname = inp.files[0] ? inp.files[0].name : '';
+    var exp = await readFile(inp);
+    await adminInicio('Cargar historia', fname + ' (local, solo lectura)');
     var n = mergeHistoria(exp);
     localStorage.setItem(CONFIG.storageKey + '_hist', JSON.stringify(exp));
+    await adminFin('Cargar historia', 'resultado · ' + n + ' registros cargados en el navegador (no se suben)');
     adminMsg('✓ Historia cargada localmente (' + n + ' registros, solo lectura). No se sube a la lista.');
     renderPanel();
   } catch(e) { adminMsg('⚠ Error: ' + (e.message || e)); }
   document.getElementById('file-hist').value = '';
 }
 
-/* Purga: elimina de Capturas_KPI las filas de este proceso que ahora sirve la historia estática */
+/* Purga: elimina de Capturas_KPI las filas de este proceso que ahora sirve la historia estática. SOLO LECG. */
 async function adminPurgaHistoria(){
+  var accion = 'Purga', iniciado = false;
   try {
+    if (!state.puedePurgar){ adminMsg('⚠ La Purga está reservada a LECG.'); return; }
     if (!Object.keys(state.historia).length){ adminMsg('Primero carga la historia (para saber qué purgar).'); return; }
     var ids = await resolveIds(); var mCap = await getColMap(ids.capturas);
+    await resolveBitacora();
     adminMsg('Buscando filas históricas en la lista…');
     var cap = await gfetchAll('/sites/' + ids.site + '/lists/' + ids.capturas + '/items?expand=fields&$top=999');
     var borrar = [];
@@ -1837,6 +1944,8 @@ async function adminPurgaHistoria(){
       if (per && title && state.historia[per] && state.historia[per][title]) borrar.push({ id: it.id, per: per, title: title }); });
     if (!borrar.length){ adminMsg('No hay filas históricas que purgar (0).'); return; }
     if (!confirm('Se eliminarán ' + borrar.length + ' filas históricas del proceso ' + CONFIG.proceso + ' en Capturas_KPI (las que ahora sirve la historia estática, solo lectura). Las capturas nuevas NO se tocan. ¿Continuar?')){ adminMsg('Cancelado.'); return; }
+    var pers = {}; borrar.forEach(function(b){ pers[b.per] = 1; }); var lp = Object.keys(pers).sort();
+    await adminInicio(accion, borrar.length + ' filas de Capturas_KPI · periodos ' + lp[0] + ' a ' + lp[lp.length-1], true); iniciado = true;
     var done = 0, fail = 0;
     for (var s = 0; s < borrar.length; s += 20){ var chunk = borrar.slice(s, s + 20);
       var reqs = chunk.map(function(b, i){ return { id:''+i, method:'DELETE', url:'/sites/'+ids.site+'/lists/'+ids.capturas+'/items/'+b.id }; });
@@ -1848,10 +1957,75 @@ async function adminPurgaHistoria(){
       saveStateSilent(); adminMsg('Purgando ' + done + '/' + borrar.length + '…'); await sleep(500);
     }
     saveStateSilent(); renderPanel();
+    await adminFin(accion, 'resultado · ' + done + ' filas eliminadas (papelera 93 días)' + (fail ? ' · ' + fail + ' con error' : ''));
     adminMsg('✓ Purga: ' + done + ' filas eliminadas' + (fail ? (' · ' + fail + ' con error') : '') + '. La historia sigue disponible (estática, solo lectura).');
-  } catch(e) { adminMsg('⚠ Error purga: ' + (e.message || e)); }
+  } catch(e) { adminMsg('⚠ Error purga: ' + (e.message || e)); if (iniciado) await adminFin(accion, 'error · ' + (e.message || e)); }
 }
 
+/* P27 · Depurar duplicados de Config_KPI de ESTE proceso. SOLO LECG.
+   Conserva la fila vigente (la que lee el MAPA: última modificada) y borra las demás SOLO si son idénticas
+   en Nombre, Nivel, Meta, Rangos, DerivaDe, Agregacion y Frecuencia. Si difieren, no borra: lo reporta.
+   Antes de borrar descarga un respaldo JSON con todas las filas del grupo. */
+async function adminDepurarConfig(){
+  var accion = 'Depurar Config_KPI', iniciado = false;
+  try {
+    if (!state.puedePurgar){ adminMsg('⚠ La depuración de Config_KPI está reservada a LECG.'); return; }
+    var ids = await resolveIds(); var mCfg = await getColMap(ids.config);
+    await resolveBitacora();
+    adminMsg('Leyendo Config_KPI…');
+    var cfg = ordenCfg(await gfetchAll('/sites/' + ids.site + '/lists/' + ids.config + '/items?expand=fields&$top=999'));
+    var dups = duplicadosCfg(cfg, mCfg);
+    if (!dups.length){ adminMsg('✓ Config_KPI de ' + CONFIG.proceso + ' no tiene filas duplicadas.'); return; }
+    var borrar = [], conflicto = [];
+    dups.forEach(function(d){
+      var vig = d.items[d.items.length - 1]; var fv = firmaCfg(vig.fields, mCfg);
+      var distintos = d.items.slice(0, -1).filter(function(it){ return firmaCfg(it.fields, mCfg) !== fv; });
+      if (distintos.length) conflicto.push(d.title);
+      else d.items.slice(0, -1).forEach(function(it){ borrar.push({ id: it.id, title: d.title, conserva: vig.id }); });
+    });
+    var respaldo = { generadoEl: new Date().toISOString(), proceso: CONFIG.proceso, usuario: state.userId, regla: 'conserva la última modificada (empate: id mayor)',
+      grupos: dups.map(function(d){ return { title: d.title, conserva: d.items[d.items.length-1].id,
+        filas: d.items.map(function(it){ return { id: it.id, creado: it.createdDateTime, modificado: it.lastModifiedDateTime,
+          creadoPor: it.createdBy && it.createdBy.user && (it.createdBy.user.email || it.createdBy.user.displayName), fields: it.fields }; }) }; }) };
+    var fn = 'respaldo_Config_KPI_' + CONFIG.procesoCode + '_' + sello() + '.json';
+    descargaJSON(respaldo, fn);
+    if (!borrar.length){ adminMsg('⚠ ' + conflicto.length + ' KPI(s) duplicados con valores DISTINTOS (' + conflicto.join(', ') + '). No se borró nada; respaldo descargado (' + fn + '). Decide cuál conservar.'); return; }
+    var txt = 'Respaldo descargado: ' + fn + '\n\nSe eliminarán ' + borrar.length + ' fila(s) duplicadas idénticas de Config_KPI (' + CONFIG.proceso + '):\n' +
+      borrar.map(function(b){ return '· ' + b.title + ' → borra id ' + b.id + ', conserva id ' + b.conserva; }).join('\n') +
+      (conflicto.length ? '\n\nNO se tocan (valores distintos): ' + conflicto.join(', ') : '') + '\n\n¿Continuar?';
+    if (!confirm(txt)){ adminMsg('Cancelado. Respaldo descargado: ' + fn); return; }
+    await adminInicio(accion, borrar.length + ' fila(s) duplicadas · ids ' + borrar.map(function(b){ return b.id; }).join(',') + ' · respaldo ' + fn, true); iniciado = true;
+    var reqs = borrar.map(function(b, i){ return { id:''+i, method:'DELETE', url:'/sites/'+ids.site+'/lists/'+ids.config+'/items/'+b.id }; });
+    var done = 0, fail = 0;
+    for (var s = 0; s < reqs.length; s += 20){ var resp = await gbatch(reqs.slice(s, s + 20), adminMsg);
+      Object.keys(resp).forEach(function(id){ var r = resp[id]; if ((r.status >= 200 && r.status < 300) || r.status === 404) done++; else fail++; }); }
+    await adminFin(accion, 'resultado · ' + done + ' fila(s) eliminadas (papelera 93 días)' + (fail ? ' · ' + fail + ' con error' : '') + (conflicto.length ? ' · sin tocar: ' + conflicto.join(',') : ''));
+    adminMsg('✓ Depuración: ' + done + ' fila(s) eliminadas' + (fail ? ' · ' + fail + ' con error' : '') + (conflicto.length ? ' · sin tocar (valores distintos): ' + conflicto.join(', ') : '') + '. Presiona ☁ Sincronizar.');
+  } catch(e) { adminMsg('⚠ Error depuración: ' + (e.message || e)); if (iniciado) await adminFin(accion, 'error · ' + (e.message || e)); }
+}
+
+/* Historial · bitácora de administración (solo administrador) */
+async function cargarBitacoraAdmin(){
+  var box = document.getElementById('bita-admin-body'); if (!box) return;
+  try {
+    var ids = await resolveIds(); var bid = await resolveBitacora(); var m = await getColMap(bid);
+    var items = await gfetchAll('/sites/' + ids.site + '/lists/' + bid + '/items?expand=fields&$top=999');
+    var filas = items.filter(function(it){ return gv(it.fields, m, 'Proceso') === CONFIG.proceso; })
+      .sort(function(a, b){ return new Date(b.createdDateTime) - new Date(a.createdDateTime); }).slice(0, 100)
+      .map(function(it){ var f = it.fields; var cb = it.createdBy && it.createdBy.user;
+        var autor = idDeCuenta(cb && cb.email) ; if (!cb || !cb.email) autor = gv(f, m, 'Usuario') || '—';
+        var ts = it.createdDateTime ? new Date(it.createdDateTime).toLocaleString('es-MX',{dateStyle:'short',timeStyle:'short'}) : '—';
+        return '<tr><td style="white-space:nowrap;font-size:10px;color:var(--muted);padding:6px 10px;">' + ts + '</td>' +
+          '<td style="font-weight:700;padding:6px 10px;color:var(--azul);">' + escHtml(autor) + '</td>' +
+          '<td style="font-weight:600;padding:6px 10px;">' + escHtml(gv(f, m, 'Accion') || '') + '</td>' +
+          '<td style="font-size:11px;padding:6px 10px;">' + escHtml(gv(f, m, 'Detalle') || '') + '</td></tr>'; }).join('');
+    box.innerHTML = '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:12px;">' +
+      '<thead><tr style="border-bottom:2px solid var(--border);text-align:left;"><th style="padding:8px 10px;">Fecha</th><th style="padding:8px 10px;">Usuario</th>' +
+      '<th style="padding:8px 10px;">Acción</th><th style="padding:8px 10px;">Detalle</th></tr></thead><tbody>' +
+      (filas || '<tr><td colspan="4" style="text-align:center;padding:14px;color:var(--muted);">Sin acciones de administración registradas</td></tr>') + '</tbody></table></div>';
+  } catch(e){ box.innerHTML = '<div style="color:#EB002A;font-size:12px;">⚠ ' + escHtml(e.message || e) + '</div>'; }
+}
+function escHtml(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 </script>
 </body>
 </html>
