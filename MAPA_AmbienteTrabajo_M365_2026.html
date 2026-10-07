@@ -1162,6 +1162,13 @@ function renderCaptura(){
         '<div class="cap-na">⚙ KPI <strong>derivado por entidad</strong> — no se captura. Se agrega automáticamente de las rutas de cada cobrador ('+(kpiById(kpi.entidadDerivada.src)||{}).nombre+').</div></div>';
       return;
     }
+    if (esCruzado(kpi)){ /* FIX 2026-10-07: KPI de lectura cruzada (fuentes) — no tiene campos; antes rompía renderCaptura */
+      var origen = kpi.fuentes.map(function(f){ return f.etiqueta || (f.externo ? f.externo.proceso : f.local); }).join(', ');
+      html += '<div class="cap-kpi"><h4>'+kpi.nombre+' <span class="cap-pill">Se calcula: '+periodo+'</span></h4>' +
+        '<div class="formula">'+kpi.formula+'</div>' +
+        '<div class="cap-na">⚙ KPI de <strong>lectura cruzada</strong> — no se captura aquí. Se toma de la captura de: <strong>'+origen+'</strong>.</div></div>';
+      return;
+    }
     if (esDerivado(kpi) && !capturableEn(kpi, periodo)){
       var fuentes = kpi.derivaDe.map(function(id){ var s = kpiById(id); return s ? s.nombre : id; }).join(', ');
       html += '<div class="cap-kpi"><h4>'+kpi.nombre+' <span class="cap-pill">Se calcula: '+periodo+'</span></h4>' +
