@@ -393,6 +393,8 @@ function isoWeeksOfMonth(ym){ var y = +ym.slice(0,4), m = +ym.slice(5,7);
 function recentIsoWeeks(n){ var out = [], hoy = new Date();
   for (var i=n-1;i>=1;i--){ var d = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate()-7*i); out.push(weekKeyOf(d)); }
   return out; }
+/* [PROD EBG 2026-10-29] Gráfica semanal: 11 semanas cerradas + la semana en curso (antes: 12 cerradas) */
+function semanasGrafica(){ var w = recentIsoWeeks(12); w.push(weekKeyOf(new Date())); return w; }
 function cadenciaDeKey(k){ if (k.indexOf('W')>=0) return 'semanal'; if (k.indexOf('Q')>=0) return 'trimestral'; return 'mensual'; }
 function mesesDeTrimestre(qk){ var y = +qk.slice(0,4), q = +qk.slice(6);
   var out = []; for (var m=(q-1)*3+1; m<=q*3; m++) out.push(y+'-'+pad2(m)); return out; }
@@ -427,9 +429,30 @@ function getWindowStatus(){
     return {status:'open', period:period, label:label, msg:'Ventana mensual abierta · cierre '+label+' · día '+day+' de '+CONFIG.ventanaFin+' · semanal: se captura la semana cerrada'};
   return {status:'late', period:period, label:label, msg:'Ventana mensual cerrada (día '+day+' > '+CONFIG.ventanaFin+') · semanal: se captura la semana cerrada'};
 }
+/* [PROD EBG 2026-10-29] Franja: muestra la última carga automática de FOR-ALM-011 (antes: aviso de ventana mensual).
+   La lógica de ventana (state.windowStatus / entrega tardía) NO cambia; solo el texto mostrado. */
+function ultimaCargaAuto(){ var max = null;
+  Object.keys(state.data || {}).forEach(function(per){ var o = state.data[per] || {};
+    Object.keys(o).forEach(function(k){ var r = o[k];
+      if (r && r.registro === 'automatico' && r.timestamp){ var t = new Date(r.timestamp); if (!isNaN(t) && (!max || t > max)) max = t; } }); });
+  return max; }
+/* Programación del flujo FOR-ALM-011 (actualizar si cambia la Recurrence): días 0=dom..6=sáb, hora local */
+var CARGA_AUTO = { dias:[1], hora:9, min:0 };
+function proximaCarga(desde){ var d = new Date(desde.getFullYear(), desde.getMonth(), desde.getDate(), CARGA_AUTO.hora, CARGA_AUTO.min);
+  for (var i = 0; i < 8; i++){ if (CARGA_AUTO.dias.indexOf(d.getDay()) >= 0 && d > desde) return d; d.setDate(d.getDate()+1); }
+  return null; }
+function fmtCarga(d, conDia){ var DS = ['dom','lun','mar','mié','jue','vie','sáb'];
+  return (conDia ? DS[d.getDay()] + ' ' : '') + d.getDate() + ' ' + MESES_L[d.getMonth()].slice(0,3).toLowerCase() + ' ' +
+    d.toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'}); }
 function renderWindow(){ var w = getWindowStatus(), e = document.getElementById('window-banner');
-  e.className = 'window-banner '+w.status;
-  e.innerHTML = '<span>'+w.msg+'</span><span><strong>Periodo:</strong> '+w.label+'</span>';
+  var uc = ultimaCargaAuto(), msg = w.msg, cls = w.status;
+  if (uc){ var ahora = new Date(), prox = proximaCarga(ahora), esperada = proximaCarga(uc);
+    var atrasada = esperada && ahora.getTime() > esperada.getTime() + 3*3600000; /* se brincó una corrida (3 h de tolerancia) */
+    msg = (atrasada ? '\u26a0 ' : '') + 'Datos al ' + fmtCarga(uc, false) + ' \u00b7 carga autom\u00e1tica FOR-ALM-011' +
+      (prox ? ' \u00b7 pr\u00f3xima: ' + fmtCarga(prox, true) : '') + (atrasada ? ' \u00b7 no se ha cargado la del ' + fmtCarga(esperada, true) : '');
+    /* color de la barra: sin cambio, lo sigue definiendo la ventana (w.status) */ }
+  e.className = 'window-banner '+cls;
+  e.innerHTML = '<span>'+msg+'</span><span><strong>Periodo:</strong> '+w.label+'</span>';
   var chip = document.getElementById('chip-periodo'); if (chip) chip.textContent = w.label;
   state.currentPeriod = w.period; state.windowStatus = w.status; }
 
@@ -1026,8 +1049,8 @@ function renderYoYChart(kpi, box){
   state.charts[kpi.id] = new Chart(canvas.getContext('2d'), {
     type:'line',
     data:{ labels:labels, datasets:[
-      {label:''+Y, data:actual, borderColor:'#003A5D', backgroundColor:'rgba(0,58,93,.10)', borderWidth:2.5, pointRadius:4, pointHoverRadius:6, tension:.3, fill:false, spanGaps:true},
-      {label:''+(Y-1), data:previo, borderColor:'#8A9BAA', borderWidth:2, borderDash:[6,4], pointRadius:3, pointHoverRadius:5, tension:.3, fill:false, spanGaps:true},
+      {label:''+Y, data:actual, borderColor:'#003A5D', backgroundColor:'rgba(0,58,93,.10)', borderWidth:2.5, pointRadius:4, pointHoverRadius:6, tension:.3, cubicInterpolationMode:'monotone', /* [PROD EBG 2026-10-29] sin sobrepaso de la curva */ fill:false, spanGaps:true},
+      {label:''+(Y-1), data:previo, borderColor:'#8A9BAA', borderWidth:2, borderDash:[6,4], pointRadius:3, pointHoverRadius:5, tension:.3, cubicInterpolationMode:'monotone', /* [PROD EBG 2026-10-29] sin sobrepaso de la curva */ fill:false, spanGaps:true},
       {label:(metaDifiere?'Meta '+Y:'Meta'), data:metaA, borderColor:'#EB002A', borderDash:[5,4], borderWidth:2, pointRadius:0, fill:false}
     ].concat(metaDifiere ? [{label:'Meta '+(Y-1), data:metaP, borderColor:'#F3A6B2', borderDash:[3,3], borderWidth:1.5, pointRadius:0, fill:false}] : [])},
     options: chartOptions(kpi, actual.concat(previo, metaA, metaDifiere?metaP:[]), ndYoY)
@@ -1040,7 +1063,7 @@ function renderTrendChart(kpi){
   if (esEntidad(kpi)){
     var er = entResuelta(kpi);
     if (kpi.cadencia === 'semanal'){
-      recentIsoWeeks(13).forEach(function(wk){ serie.push({label:'S'+(+wk.slice(6)), value:valOpe(kpi, er, wk), key:wk}); });
+      semanasGrafica().forEach(function(wk){ serie.push({label:'S'+(+wk.slice(6)), value:valOpe(kpi, er, wk), key:wk}); });
     } else {
       candidatePeriods(kpi.cadencia).slice(0,8).reverse().forEach(function(pk){
         var lbl = (kpi.cadencia==='trimestral') ? ('Q'+pk.slice(6)+' '+pk.slice(2,4)) : pk.slice(5);
@@ -1048,7 +1071,7 @@ function renderTrendChart(kpi){
       });
     }
   } else if (kpi.cadencia === 'semanal'){
-    recentIsoWeeks(13).forEach(function(wk){ serie.push({label:'S'+(+wk.slice(6)), value:valorKpiEnPeriodo(kpi, wk), key:wk}); });
+    semanasGrafica().forEach(function(wk){ serie.push({label:'S'+(+wk.slice(6)), value:valorKpiEnPeriodo(kpi, wk), key:wk}); });
   } else {
     if (state.chartView === 'yoy'){ renderYoYChart(kpi, box); return; }
     if (kpi.cadencia === 'trimestral'){
@@ -1057,7 +1080,7 @@ function renderTrendChart(kpi){
     } else {
       var hoy = new Date();
       for (var i = 11; i >= 0; i--){
-        var d = new Date(hoy.getFullYear(), hoy.getMonth() - i - 1, 15);
+        var d = new Date(hoy.getFullYear(), hoy.getMonth() - i, 15); /* [PROD EBG 2026-10-29] incluye el mes en curso (antes: - i - 1) */
         var key = d.getFullYear()+'-'+pad2(d.getMonth()+1);
         serie.push({label:d.toLocaleDateString('es-MX',{month:'short'}).slice(0,3), value:valorKpiEnPeriodo(kpi, key), key:key});
       }
@@ -1083,7 +1106,7 @@ function renderTrendChart(kpi){
     data:{ labels: serie.map(function(s){ return s.label + (idxCurso>=0 && s === serie[idxCurso] ? ' •' : ''); }),
       datasets:[
         {label:kpi.nombre, data:serie.map(function(s){return s.value;}), borderColor:'#003A5D', backgroundColor:'rgba(0,58,93,.10)', borderWidth:2.5,
-         pointRadius:ptR, pointHoverRadius:6, pointBackgroundColor:ptBg, pointBorderColor:ptBd, pointBorderWidth:ptBw, tension:.3, fill:true, spanGaps:true,
+         pointRadius:ptR, pointHoverRadius:6, pointBackgroundColor:ptBg, pointBorderColor:ptBd, pointBorderWidth:ptBw, tension:.3, cubicInterpolationMode:'monotone', /* [PROD EBG 2026-10-29] sin sobrepaso de la curva */ fill:true, spanGaps:true,
          segment:{ borderDash:function(ctx){ return ctx.p1DataIndex === idxCurso ? [6,4] : undefined; } }},
         {label:'Meta', data:metaLine, borderColor:'#EB002A', borderDash:[5,4], borderWidth:2, pointRadius:0, fill:false}
       ]},
@@ -1108,7 +1131,11 @@ function capPerHoy(){ var cad = capCadActual(); state.capPer[cad] = periodoCerra
 function setCapRuta(r){ state.capRuta = r; renderCaptura(); }
 /* Derivable en el periodo = ya existe captura de nivel inferior → bloquear captura directa */
 function derivableEn(kpi, periodo){ return esDerivado(kpi) && valorDerivado(kpi, periodo) !== null; }
+/* [PROD EBG 2026-10-29] Captura manual bloqueada: estos KPIs los carga el flujo FOR-ALM-011 (decisión LECG 2026-10-27) */
+var CAPTURA_AUTO = { conteos_ciclicos:true, confiabilidad_inventario:true };
+function esCapturaAuto(kpi){ return !!CAPTURA_AUTO[kpi.id]; }
 function capturableEn(kpi, periodo){
+  if (esCapturaAuto(kpi)) return false;
   if (!kpi.activo || kpi.entidadDerivada || esCruzado(kpi)) return false;
   if (kpi.porEntidad) return true;
   if (esDerivado(kpi)) return !!kpi.capturaFallback && !derivableEn(kpi, periodo);
@@ -1149,6 +1176,15 @@ function renderCaptura(){
 
   kpisCad.forEach(function(kpi){
     var pillTxt = 'Capturando: ' + labelPeriodo(periodo) + (kpi.porEntidad ? ' · '+entLabel(entLeaf())+' '+state.capRuta : '');
+    if (esCapturaAuto(kpi)){
+      var regAuto = (state.data[periodo]||{})[kpi.id];
+      html += '<div class="cap-kpi"><h4>'+kpi.nombre+' <span class="cap-pill">Carga autom\u00e1tica: '+periodo+'</span></h4>' +
+        '<div class="formula">'+kpi.formula+'</div>' +
+        '<div class="cap-na">\ud83d\udd12 <strong>Captura manual bloqueada</strong> \u2014 este KPI lo registra el flujo de Power Automate desde el Excel FOR-ALM-011 (programa de conteos c\u00edclicos). ' +
+        (regAuto && regAuto.valores && Object.keys(regAuto.valores).length ? 'Valor cargado para '+labelPeriodo(periodo)+': <strong>'+fmtVal(kpi, kpi.calcular(regAuto.valores))+'</strong>. ' : 'A\u00fan no hay carga para '+labelPeriodo(periodo)+'. ') +
+        'Para corregir un dato, corr\u00edgelo en el Excel antes del lunes 09:00.</div></div>';
+      return;
+    }
     if (kpi.entidadDerivada){
       html += '<div class="cap-kpi"><h4>'+kpi.nombre+' <span class="cap-pill">Se calcula: '+periodo+'</span></h4>' +
         '<div class="cap-na">⚙ KPI <strong>derivado por entidad</strong> — no se captura. Se agrega automáticamente de las rutas de cada cobrador ('+(kpiById(kpi.entidadDerivada.src)||{}).nombre+').</div></div>';
@@ -1178,7 +1214,7 @@ function renderCaptura(){
 
   html += '<div class="cap-actions">' +
     '<button class="btn btn-secondary" id="btn-cap-cancel">Cancelar</button>' +
-    '<button class="btn btn-primary" id="btn-cap-save">Guardar registro</button>' +
+    '<button class="btn btn-primary" id="btn-cap-save"'+(kpisCad.every(function(k){ return !capturableEn(k, periodo); }) ? ' disabled title="No hay KPIs de captura manual en esta cadencia"' : '')+'>Guardar registro</button>' +
     '</div></div>';
   document.getElementById('tab-captura').innerHTML = html;
   document.getElementById('btn-cap-save').onclick = handleSaveCaptura;
@@ -1695,6 +1731,7 @@ async function syncInit(){
   setSyncMsg(!state.configLoaded ? '⚠ Config_KPI sin datos de este proceso — usa Admin · Inicializar'
     : (pend ? '⚠ ' + pend + ' captura(s) pendientes de subir' : '☁ Sincronizado ' + new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }))
       + (state.isAdmin && state.configDuplicados.length ? ' · ⚠ Config_KPI: ' + state.configDuplicados.length + ' KPI(s) con filas duplicadas' : ''));
+  renderWindow(); /* [PROD EBG 2026-10-29] refresca la franja con la última carga tras sincronizar */
 }
 
 function getPending(){ try { return JSON.parse(localStorage.getItem(CONFIG.storageKey + '_pend') || '[]'); } catch(e){ return []; } }
