@@ -429,30 +429,10 @@ function getWindowStatus(){
     return {status:'open', period:period, label:label, msg:'Ventana mensual abierta · cierre '+label+' · día '+day+' de '+CONFIG.ventanaFin+' · semanal: se captura la semana cerrada'};
   return {status:'late', period:period, label:label, msg:'Ventana mensual cerrada (día '+day+' > '+CONFIG.ventanaFin+') · semanal: se captura la semana cerrada'};
 }
-/* [PROD EBG 2026-10-29] Franja: muestra la última carga automática de FOR-ALM-011 (antes: aviso de ventana mensual).
-   La lógica de ventana (state.windowStatus / entrega tardía) NO cambia; solo el texto mostrado. */
-function ultimaCargaAuto(){ var max = null;
-  Object.keys(state.data || {}).forEach(function(per){ var o = state.data[per] || {};
-    Object.keys(o).forEach(function(k){ var r = o[k];
-      if (r && r.registro === 'automatico' && r.timestamp){ var t = new Date(r.timestamp); if (!isNaN(t) && (!max || t > max)) max = t; } }); });
-  return max; }
-/* Programación del flujo FOR-ALM-011 (actualizar si cambia la Recurrence): días 0=dom..6=sáb, hora local */
-var CARGA_AUTO = { dias:[1], hora:9, min:0 };
-function proximaCarga(desde){ var d = new Date(desde.getFullYear(), desde.getMonth(), desde.getDate(), CARGA_AUTO.hora, CARGA_AUTO.min);
-  for (var i = 0; i < 8; i++){ if (CARGA_AUTO.dias.indexOf(d.getDay()) >= 0 && d > desde) return d; d.setDate(d.getDate()+1); }
-  return null; }
-function fmtCarga(d, conDia){ var DS = ['dom','lun','mar','mié','jue','vie','sáb'];
-  return (conDia ? DS[d.getDay()] + ' ' : '') + d.getDate() + ' ' + MESES_L[d.getMonth()].slice(0,3).toLowerCase() + ' ' +
-    d.toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'}); }
+/* [PROD EBG 2026-10-29] Franja regresada a la versión anterior (aviso de ventana); se retira el texto de carga automática (Cambio 5). */
 function renderWindow(){ var w = getWindowStatus(), e = document.getElementById('window-banner');
-  var uc = ultimaCargaAuto(), msg = w.msg, cls = w.status;
-  if (uc){ var ahora = new Date(), prox = proximaCarga(ahora), esperada = proximaCarga(uc);
-    var atrasada = esperada && ahora.getTime() > esperada.getTime() + 3*3600000; /* se brincó una corrida (3 h de tolerancia) */
-    msg = (atrasada ? '\u26a0 ' : '') + 'Datos al ' + fmtCarga(uc, false) + ' \u00b7 carga autom\u00e1tica FOR-ALM-011' +
-      (prox ? ' \u00b7 pr\u00f3xima: ' + fmtCarga(prox, true) : '') + (atrasada ? ' \u00b7 no se ha cargado la del ' + fmtCarga(esperada, true) : '');
-    /* color de la barra: sin cambio, lo sigue definiendo la ventana (w.status) */ }
-  e.className = 'window-banner '+cls;
-  e.innerHTML = '<span>'+msg+'</span><span><strong>Periodo:</strong> '+w.label+'</span>';
+  e.className = 'window-banner '+w.status;
+  e.innerHTML = '<span>'+w.msg+'</span><span><strong>Periodo:</strong> '+w.label+'</span>';
   var chip = document.getElementById('chip-periodo'); if (chip) chip.textContent = w.label;
   state.currentPeriod = w.period; state.windowStatus = w.status; }
 
@@ -995,8 +975,12 @@ function ejeY(kpi, vals){
   if (hi - lo < 4) hi = lo + 4;
   return {min:lo, max:hi};
 }
+/* [PROD EBG 2026-10-29] Eje Y en puntos enteros (100, 99, 98…) sin intermedios, tope 100% con aire arriba. Solo presentación. */
+var EJE_Y_PUNTOS = { confiabilidad_inventario:{max:100} };
 function chartOptions(kpi, vals, ndSerie){
   var y = ejeY(kpi, vals);
+  var eyp = EJE_Y_PUNTOS[kpi.id];
+  if (eyp){ y.min = Math.min(eyp.max - 4, Math.floor(y.min)); y.max = eyp.max + 0.6; } /* +0.6: aire arriba para la línea y las etiquetas; sin marca intermedia */
   var fv = function(v){ if (kpi.unidad === '$') return '$'+Number(v).toLocaleString('es-MX',{maximumFractionDigits:0});
     return (Math.round(v*10)/10) + ((kpi.unidad||'%')==='%' ? '%' : ' '+kpi.unidad); };
   return { responsive:true, maintainAspectRatio:false, animation:false,
@@ -1018,7 +1002,8 @@ function chartOptions(kpi, vals, ndSerie){
           return [lblN+': '+fc(nd.num,np.uN), lblD+': '+fc(nd.den,np.uD)];
         }}} },
     scales:{ x:{ticks:{font:{size:11}, color:'#475569'}, grid:{display:false}},
-      y:{ticks:{font:{size:11}, color:'#475569', callback:fv}, min:y.min, max:y.max, grid:{color:'#f0f0f0'}} }
+      y:{ticks:{font:{size:11}, color:'#475569', callback:fv, stepSize:(eyp && y.max - y.min <= 11) ? 1 : undefined, precision:eyp ? 0 : undefined}, min:y.min, max:y.max, grid:{color:'#f0f0f0'},
+        afterBuildTicks:eyp ? function(sc){ sc.ticks = sc.ticks.filter(function(t){ return Number.isInteger(t.value); }); } : undefined} }
   };
 }
 function renderYoYChart(kpi, box){
@@ -1731,7 +1716,6 @@ async function syncInit(){
   setSyncMsg(!state.configLoaded ? '⚠ Config_KPI sin datos de este proceso — usa Admin · Inicializar'
     : (pend ? '⚠ ' + pend + ' captura(s) pendientes de subir' : '☁ Sincronizado ' + new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }))
       + (state.isAdmin && state.configDuplicados.length ? ' · ⚠ Config_KPI: ' + state.configDuplicados.length + ' KPI(s) con filas duplicadas' : ''));
-  renderWindow(); /* [PROD EBG 2026-10-29] refresca la franja con la última carga tras sincronizar */
 }
 
 function getPending(){ try { return JSON.parse(localStorage.getItem(CONFIG.storageKey + '_pend') || '[]'); } catch(e){ return []; } }
