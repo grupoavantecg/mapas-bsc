@@ -845,7 +845,7 @@ function renderPanel(){
       if (bandaTieneEntidad(b[0])) html += entSelectorHtml();
       html += '<div class="kpi-grid">';
       arr.forEach(function(kpi, idx){
-        var full = (arr.length === 1) || (arr.length % 2 === 1 && idx === arr.length-1);
+        var full = true; /* [EBG 2026-11-04] una gráfica por fila, como Compras/Almacén (antes: 2 por fila) */
         html += renderKpiCard(kpi, full);
       });
       html += '</div>';
@@ -870,18 +870,18 @@ function renderOpeSecciones(arr){
   var h = '<div class="ope-ctrl"><div class="ent-sel">'+ICO.user+'<span><strong>'+entLabel(top)+':</strong></span><select onchange="setEntPrim(this.value)">'+primOptsHtml(top,pid)+'</select></div></div>';
   if (grpTop.length){
     h += '<div class="ope-sub"><span class="ope-sub-h">KPIs por '+entLabel(top)+'</span></div><div class="kpi-grid">';
-    grpTop.forEach(function(kpi, idx){ h += renderKpiCard(kpi, (grpTop.length%2===1 && idx===grpTop.length-1)); });
+    grpTop.forEach(function(kpi, idx){ h += renderKpiCard(kpi, true); /* [EBG 2026-11-04] una gráfica por fila, como Compras/Almacén (antes: 2 por fila) */ });
     h += '</div>';
   }
   if (grpLeaf.length){
     var drill = entDrillActivo();
     h += '<div class="ope-sub"><span class="ope-sub-h">KPIs por '+entLabel(leaf)+'</span><div class="ent-sel">'+ICO.bars+'<span><strong>'+entLabel(leaf)+':</strong></span><select onchange="setEntDrill(this.value)">'+drillOptsHtml(pid,drill)+'</select></div></div><div class="kpi-grid">';
-    grpLeaf.forEach(function(kpi, idx){ h += renderKpiCard(kpi, (grpLeaf.length%2===1 && idx===grpLeaf.length-1)); });
+    grpLeaf.forEach(function(kpi, idx){ h += renderKpiCard(kpi, true); /* [EBG 2026-11-04] una gráfica por fila, como Compras/Almacén (antes: 2 por fila) */ });
     h += '</div>';
   }
   if (otros.length){
     h += '<div class="kpi-grid">';
-    otros.forEach(function(kpi, idx){ h += renderKpiCard(kpi, (otros.length%2===1 && idx===otros.length-1)); });
+    otros.forEach(function(kpi, idx){ h += renderKpiCard(kpi, true); /* [EBG 2026-11-04] una gráfica por fila, como Compras/Almacén (antes: 2 por fila) */ });
     h += '</div>';
   }
   return h;
