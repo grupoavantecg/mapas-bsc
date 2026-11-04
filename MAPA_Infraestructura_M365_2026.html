@@ -10,7 +10,7 @@
   --bg:#f0f3f7;--card:#fff;--border:#e2e8f0;--text:#1a1a2e;--muted:#475569;--gap:16px;--r:10px;}
 *{margin:0;padding:0;box-sizing:border-box;}
 body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--text);font-size:13px;}
-.app{max-width:1240px;margin:0 auto;padding:20px;}
+.app{max-width:none;width:100%;margin:0;padding:20px 24px;} /* [EBG 2026-11-04] ancho completo (antes: max-width:1240px) */
 .hidden{display:none!important;}
 
 #login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;
@@ -156,7 +156,7 @@ footer strong{color:var(--azul);}
 .ent-sel{display:flex;align-items:center;gap:6px;font-size:11px;color:#41586b;margin-bottom:6px;flex-wrap:wrap;}
 .ent-sel select{padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;color:#003A5D;font-weight:600;background:#fff;}
 .kpi-card.v3 .kpi-trend-box{height:250px;}
-.kpi-card.v3.full .kpi-trend-box{height:240px;}
+.kpi-card.v3.full .kpi-trend-box{height:300px;} /* [EBG 2026-11-04] antes 240px */
 .cap-pill{display:inline-block;background:#e8f0f6;color:#003A5D;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:6px;vertical-align:middle;}
 .cad-tabs{display:flex;gap:6px;margin-bottom:12px;}
 .cad-tab{padding:7px 18px;border-radius:16px;border:1px solid #cbd5e1;background:#fff;font-size:12px;font-weight:700;color:#334155;cursor:pointer;font-family:inherit;}
@@ -796,7 +796,7 @@ function renderPanel(){
     if (bandaTieneEntidad(b[0])) html += entSelectorHtml();
     html += '<div class="kpi-grid">';
     arr.forEach(function(kpi, idx){
-      var full = (arr.length === 1) || (arr.length % 2 === 1 && idx === arr.length-1);
+      var full = true; /* [EBG 2026-11-04] una gráfica por fila (antes: 2 por fila) */
       html += renderKpiCard(kpi, full);
     });
     html += '</div></div>';
