@@ -181,7 +181,7 @@ footer strong{color:var(--azul);}
     <button class="btn-login" id="btn-login-action">Iniciar sesión con Microsoft</button>
     <div class="login-err" id="login-err"></div>
     <div class="login-hint">
-      Responsable: <strong>ERR · Edgar</strong><br>
+      Responsable: <strong>AGG · Ariadne</strong><br>
       Acceso con tu cuenta casamobel.mx autorizada. Cada captura se guarda en el servidor central.
     </div>
   </div>
@@ -198,7 +198,7 @@ footer strong{color:var(--azul);}
         </div>
       </div>
       <div class="hdr-right">
-        <span class="user-chip" id="chip-user">ERR</span>
+        <span class="user-chip" id="chip-user">AGG</span>
         <span class="user-chip" id="chip-periodo"></span>
         <button class="btn-hdr" id="btn-sync">☁ Sincronizar</button>
         <button class="btn-hdr" id="btn-admin" style="display:none;">Admin</button>
@@ -239,18 +239,18 @@ footer strong{color:var(--azul);}
 <script>
 /* ============ GOLDEN MASTER v3 · Panel BSC Grupo Avante CG ============ */
 const CONFIG = { proceso:'Gestión de las Garantías y Servicios', procesoCode:'garantias', eje:'Cadena de Suministro',
-  responsable:'ERR', responsableNombre:'Edgar',
+  responsable:'AGG', responsableNombre:'Ariadne', /* [EBG 2026-11-05] antes ERR · Edgar */
   ventanaInicio:1, ventanaFin:7, storageKey:'ga_proc_garantias', version:'3.0', historiaUrl:null,
   usuarios:{
     'luisecasillas@casamobel.mx':{id:'LECG', admin:true, purga:true, procesos:'*'},
     'econhogar@casamobel.mx':{id:'MAJR', procesos:['Cobranza','Ventas','Atracción y Satisfacción del Cliente']},
     'contabilidad@casamobel.mx':{id:'CRL', procesos:['Finanzas']},
-    'proveeduria@casamobel.mx':{id:'ERR', procesos:['Innovación y Desarrollo de Productos y Servicios','Planeación de la Demanda','Compras','Almacén','Gestión de las Garantías y Servicios']},
+    'proveeduria@casamobel.mx':{id:'AGG', procesos:['Innovación y Desarrollo de Productos y Servicios','Planeación de la Demanda','Compras','Almacén','Gestión de las Garantías y Servicios']}, /* [EBG 2026-11-05] ERR→AGG: Ariadne hereda la cuenta (aprobado LECG) */
     'control@casamobel.mx':{id:'LAOD', procesos:['Gestión de la Infraestructura','Gestión de los Recursos Materiales y Servicios']},
     'administracion@casamobel.mx':{id:'EBG', admin:true, procesos:['Gestión de la Tecnología']},
     'desarrollohumano@casamobel.mx':{id:'ISC', procesos:['Gestión del Talento','Gestión del Ambiente de Trabajo']},
     'mzermeno@casamobel.mx':{id:'MZG', procesos:'*', soloLectura:true},
-    'coordinacion@casamobel.mx':{id:'AGG', procesos:['Innovación y Desarrollo de Productos y Servicios','Planeación de la Demanda']},
+    /* [EBG 2026-11-05] coordinacion@ (AGG) retirada: Ariadne usa proveeduria@ */
     'cedis@casamobel.mx':{id:'EAAP', procesos:['Almacén']}
   },
   entidades:{ dims:[], labels:{}, jerarquia:{}, catalogo:{} }
@@ -259,7 +259,7 @@ const CONFIG = { proceso:'Gestión de las Garantías y Servicios', procesoCode:'
 /* KPIs Matriz de Trazabilidad v010 · metas desde Config_KPI (null en código público) */
 const KPIS = [
 {id:'resolucion_garantias', matriz:'SUM-032', nombre:'Resolución de Garantías', nivel:'tactico', cadencia:'mensual',
- formula:'Garantías resueltas en ≤30 días / Total de garantías', respDato:'RP - Garantías (ERR)', meta:null, unidad:'%', activo:true,
+ formula:'Garantías resueltas en ≤30 días / Total de garantías', respDato:'RP - Garantías (AGG)', meta:null, unidad:'%', activo:true,
  campos:[{id:'resueltas_30d', label:'Garantías resueltas en ≤30 días', u:'conteo'},{id:'garantias_total', label:'Total de garantías', u:'conteo'}],
  calcular:function(v){return v.garantias_total > 0 ? (v.resueltas_30d / v.garantias_total * 100) : null;},
  semaforo:function(val,m){return val >= 95 ? 'v' : (val >= 85 ? 'a' : 'r');}}

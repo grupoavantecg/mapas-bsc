@@ -248,12 +248,12 @@ const CONFIG = { proceso:'Evaluación del Desempeño', procesoCode:'evaluacionde
     'luisecasillas@casamobel.mx':{id:'LECG', admin:true, purga:true, procesos:'*'},
     'econhogar@casamobel.mx':{id:'MAJR', procesos:['Cobranza','Ventas','Atracción y Satisfacción del Cliente']},
     'contabilidad@casamobel.mx':{id:'CRL', procesos:['Finanzas']},
-    'proveeduria@casamobel.mx':{id:'ERR', procesos:['Innovación y Desarrollo de Productos y Servicios','Planeación de la Demanda','Compras','Almacén','Gestión de las Garantías y Servicios']},
+    'proveeduria@casamobel.mx':{id:'AGG', procesos:['Innovación y Desarrollo de Productos y Servicios','Planeación de la Demanda','Compras','Almacén','Gestión de las Garantías y Servicios']}, /* [EBG 2026-11-05] ERR→AGG: Ariadne hereda la cuenta (aprobado LECG) */
     'control@casamobel.mx':{id:'LAOD', procesos:['Gestión de la Infraestructura','Gestión de los Recursos Materiales y Servicios']},
     'administracion@casamobel.mx':{id:'EBG', admin:true, procesos:['Gestión de la Tecnología']},
     'desarrollohumano@casamobel.mx':{id:'ISC', procesos:['Gestión del Talento','Gestión del Ambiente de Trabajo']},
     'mzermeno@casamobel.mx':{id:'MZG', procesos:['Evaluación del Desempeño','Mejora Continua']}, /* P11: captura solo en EVD y MEC; observador en el resto */
-    'coordinacion@casamobel.mx':{id:'AGG', procesos:['Innovación y Desarrollo de Productos y Servicios','Planeación de la Demanda']},
+    /* [EBG 2026-11-05] coordinacion@ (AGG) retirada: Ariadne usa proveeduria@ */
     'cedis@casamobel.mx':{id:'EAAP', procesos:['Almacén']}
   },
   entidades:{ dims:[], labels:{}, jerarquia:{}, catalogo:{} }
