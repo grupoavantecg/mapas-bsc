@@ -256,19 +256,26 @@ const CONFIG = { proceso:'Gestión de la Tecnología', procesoCode:'tecnologia',
   entidades:{ dims:[], labels:{}, jerarquia:{}, catalogo:{} }
 };
 
-/* KPIs Matriz de Trazabilidad v012 · metas desde Config_KPI (null en código público) */
+/* KPIs Matriz de Trazabilidad v017 · metas desde Config_KPI (null en código público)
+   [EBG 2026-11-05 · validado en pruebas] Eje TI según Matriz v017 (Decisión DG 2026-10-23): TI-041 eliminado; TI-042 → estratégico;
+   TI-043 → operativo; nuevos TI-061 Automatización de KPIs y TI-062 Digitalización de documentos. */
 const KPIS = [
-{id:'tasa_digitalizacion', matriz:'TI-041', nombre:'Tasa de Digitalización', nivel:'estrategico', cadencia:'trimestral',
- formula:'Procesos totalmente gestionados de manera digital / Número total de procesos', respDato:'Dirección General', meta:null, unidad:'%', activo:true,
- campos:[{id:'procesos_digitales', label:'Procesos totalmente gestionados de manera digital', u:'conteo'},{id:'procesos_total', label:'Número total de procesos', u:'conteo'}],
- calcular:function(v){return v.procesos_total > 0 ? (v.procesos_digitales / v.procesos_total * 100) : null;},
- semaforo:function(val,m){return val >= 50 ? 'v' : (val >= 46 ? 'a' : 'r');}},
-{id:'tasa_innovacion', matriz:'TI-042', nombre:'Tasa de Innovación Tecnológica', nivel:'tactico', cadencia:'mensual',
+{id:'tasa_innovacion', matriz:'TI-042', nombre:'Tasa de Innovación Tecnológica', nivel:'estrategico', cadencia:'mensual',
  formula:'Iniciativas tecnológicas implementadas con éxito / Total de iniciativas', respDato:'LEE Tecnología', meta:null, unidad:'%', activo:true,
  campos:[{id:'iniciativas_exito', label:'Iniciativas tecnológicas implementadas con éxito', u:'conteo'},{id:'iniciativas_total', label:'Total de iniciativas', u:'conteo'}],
  calcular:function(v){return v.iniciativas_total > 0 ? (v.iniciativas_exito / v.iniciativas_total * 100) : null;},
  semaforo:function(val,m){return val >= 90 ? 'v' : (val >= 80 ? 'a' : 'r');}},
-{id:'tasa_mantenimiento_hs', matriz:'TI-043', nombre:'Tasa de Mantenimiento de Hardware y Software', nivel:'tactico', cadencia:'mensual',
+{id:'automatizacion_kpis', matriz:'TI-061', nombre:'Automatización de KPIs', nivel:'tactico', cadencia:'mensual',
+ formula:'KPIs calculados automáticamente con datos de SAGAN / Total de KPIs del SGC', respDato:'LEE Tecnología', meta:null, unidad:'%', activo:true,
+ campos:[{id:'kpis_automaticos', label:'KPIs calculados automáticamente con datos de SAGAN', u:'conteo'},{id:'kpis_total', label:'Total de KPIs del SGC', u:'conteo'}],
+ calcular:function(v){return v.kpis_total > 0 ? (v.kpis_automaticos / v.kpis_total * 100) : null;},
+ semaforo:function(val,m){return val >= 100 ? 'v' : (val >= 90 ? 'a' : 'r');}},
+{id:'digitalizacion_documentos', matriz:'TI-062', nombre:'Digitalización de Documentos', nivel:'tactico', cadencia:'trimestral',
+ formula:'Documentos totalmente gestionados de manera digital / Número total de documentos del SGC', respDato:'Dirección General', meta:null, unidad:'%', activo:true,
+ campos:[{id:'documentos_digitales', label:'Documentos totalmente gestionados de manera digital', u:'conteo'},{id:'documentos_total', label:'Número total de documentos del SGC', u:'conteo'}],
+ calcular:function(v){return v.documentos_total > 0 ? (v.documentos_digitales / v.documentos_total * 100) : null;},
+ semaforo:function(val,m){return val >= 65 ? 'v' : (val >= 60 ? 'a' : 'r');}},
+{id:'tasa_mantenimiento_hs', matriz:'TI-043', nombre:'Tasa de Mantenimiento de Hardware y Software', nivel:'operativo', cadencia:'mensual',
  formula:'Tareas ejecutadas con éxito / Tareas del plan de mantenimiento', respDato:'LEE Tecnología', meta:null, unidad:'%', activo:true,
  campos:[{id:'tareas_exito', label:'Tareas ejecutadas con éxito', u:'conteo'},{id:'tareas_plan', label:'Tareas del plan de mantenimiento', u:'conteo'}],
  calcular:function(v){return v.tareas_plan > 0 ? (v.tareas_exito / v.tareas_plan * 100) : null;},
