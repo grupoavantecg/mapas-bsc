@@ -768,7 +768,7 @@ function renderPanel(){
     if (bandaTieneEntidad(b[0])) html += entSelectorHtml();
     html += '<div class="kpi-grid">';
     arr.forEach(function(kpi, idx){
-      var full = (arr.length === 1) || (arr.length % 2 === 1 && idx === arr.length-1);
+      var full = true; /* [EBG 2026-11-10] Ventas: todas las tarjetas/gráficas a lo ancho de la pantalla (antes 2 columnas) */
       html += renderKpiCard(kpi, full);
     });
     html += '</div></div>';
