@@ -757,10 +757,31 @@ function coberturaResuelta(kpi, er, mesRef){
 /* ¿esta banda tiene KPIs por entidad? */
 function bandaTieneEntidad(nivel){ return tieneEntidades() && KPIS.some(function(k){ return k.nivel===nivel && esEntidad(k); }); }
 
+/* [EBG 2026-11-10] Aviso: capturas de entidades que no están en CONFIG.entidades (el motor las ignora sin avisar) */
+function entidadesDesconocidas(){
+  var out = {}; if (!tieneEntidades()) return out;
+  [state.data, state.historia].forEach(function(src){ if (!src) return;
+    Object.keys(src).forEach(function(p){ Object.keys(src[p]||{}).forEach(function(slot){
+      var ent = entParte(slot); if (!ent) return;
+      var k = kpiById(baseId(slot)); if (!k || !k.porEntidad) return;
+      var ids = entList(k.porEntidad).map(function(x){ return x.id; });
+      if (ids.indexOf(ent) >= 0) return;
+      var o = out[ent] || (out[ent] = {n:0, desde:p, hasta:p});
+      o.n++; if (p < o.desde) o.desde = p; if (p > o.hasta) o.hasta = p;
+    }); });
+  });
+  return out;
+}
+function avisoEntidadesHtml(){
+  var d = entidadesDesconocidas(), ks = Object.keys(d).sort(); if (!ks.length) return '';
+  var det = ks.map(function(e){ var o = d[e]; return '<strong>'+e+'</strong> ('+o.n+(o.n===1?' captura, ':' capturas, ')+(o.desde===o.hasta?o.desde:o.desde+' a '+o.hasta)+')'; }).join(' · ');
+  return '<div class="window-banner" style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;">' +
+    '<span>⚠ Hay capturas de '+entLabel(entTop()).toLowerCase()+'s que no están en el catálogo del MAPA y NO se suman a los resultados: '+det+'. Agrégalos al catálogo (CONFIG.entidades).</span></div>';
+}
 function renderPanel(){
   for (var k in state.charts) { try { state.charts[k].destroy(); } catch(e){} }
   state.charts = {};
-  var html = chartViewToggleHtml();
+  var html = avisoEntidadesHtml() + chartViewToggleHtml(); /* [EBG 2026-11-10] aviso de entidades fuera de catálogo */
   [['estrategico','band-est'],['tactico','band-tac'],['operativo','band-ope']].forEach(function(b){
     var arr = KPIS.filter(function(k){ return k.nivel === b[0]; });
     if (!arr.length) return;
