@@ -241,7 +241,7 @@ footer strong{color:var(--azul);}
 const CONFIG = { proceso:'Innovación y Desarrollo de Productos y Servicios', procesoCode:'innovacion', eje:'Cadena de Suministro',
   responsable:'AGG', responsableNombre:'Ariadne',
   ventanaInicio:1, ventanaFin:7, storageKey:'ga_proc_innovacion', version:'3.0', historiaUrl:null,
-  procesosExternos:['Planeación de la Demanda'],
+  procesosExternos:[], /* [EBG 2026-11-11] antes ['Planeación de la Demanda'], solo lo usaba SUM-023 */
   usuarios:{
     'luisecasillas@casamobel.mx':{id:'LECG', admin:true, purga:true, procesos:'*'},
     'econhogar@casamobel.mx':{id:'MAJR', procesos:['Cobranza','Ventas','Atracción y Satisfacción del Cliente']},
@@ -259,10 +259,7 @@ const CONFIG = { proceso:'Innovación y Desarrollo de Productos y Servicios', pr
 
 /* KPIs Matriz de Trazabilidad v010 · metas desde Config_KPI (null en código público) */
 const KPIS = [
-{id:'eficacia_ocv', matriz:'SUM-023', nombre:'Eficacia de la OCV', nivel:'estrategico', cadencia:'trimestral',
- formula:'Disponibilidad de Producto × 50% + Éxito de la OCV × 50%', respDato:'Dirección General', meta:null, unidad:'%', activo:true,
- fuentes:[{local:'exito_ocv', cadencia:'mensual', peso:0.5, etiqueta:'Éxito de la OCV (Innovación)'},{externo:{proceso:'Planeación de la Demanda', slot:'disponibilidad_producto', calcular:function(v){return v.productos_activos > 0 ? (v.productos_dentro / v.productos_activos * 100) : null;}}, cadencia:'mensual', peso:0.5, etiqueta:'Planeación de la Demanda'}],
- semaforo:function(val,m){return val >= 80 ? 'v' : (val >= 70 ? 'a' : 'r');}},
+/* [EBG 2026-11-11 · aprobado LECG] SUM-023 Eficacia de la OCV retirado: se muestra solo en Planeación de la Demanda */
 {id:'exito_ocv', matriz:'SUM-024', nombre:'Éxito de la OCV', nivel:'tactico', cadencia:'mensual',
  formula:'Total de piezas de la OCV con venta / Total de piezas vendidas', respDato:'RP - Innovación (AGG)', meta:null, unidad:'%', activo:true,
  campos:[{id:'piezas_ocv', label:'Piezas de la OCV con venta', u:'conteo'},{id:'piezas_vendidas', label:'Total de piezas vendidas', u:'conteo'}],
@@ -793,7 +790,7 @@ function renderPanel(){
     if (bandaTieneEntidad(b[0])) html += entSelectorHtml();
     html += '<div class="kpi-grid">';
     arr.forEach(function(kpi, idx){
-      var full = (arr.length === 1) || (arr.length % 2 === 1 && idx === arr.length-1);
+      var full = true; /* [EBG 2026-11-11] una gráfica por fila (antes: 2 por fila) */
       html += renderKpiCard(kpi, full);
     });
     html += '</div></div>';
@@ -1030,8 +1027,8 @@ function renderYoYChart(kpi, box){
   state.charts[kpi.id] = new Chart(canvas.getContext('2d'), {
     type:'line',
     data:{ labels:labels, datasets:[
-      {label:''+Y, data:actual, borderColor:'#003A5D', backgroundColor:'rgba(0,58,93,.10)', borderWidth:2.5, pointRadius:4, pointHoverRadius:6, tension:.3, fill:false, spanGaps:true},
-      {label:''+(Y-1), data:previo, borderColor:'#8A9BAA', borderWidth:2, borderDash:[6,4], pointRadius:3, pointHoverRadius:5, tension:.3, fill:false, spanGaps:true},
+      {label:''+Y, data:actual, borderColor:'#003A5D', backgroundColor:'rgba(0,58,93,.10)', borderWidth:2.5, pointRadius:4, pointHoverRadius:6, tension:.3, cubicInterpolationMode:'monotone' /* [EBG 2026-11-11] sin sobrepaso entre puntos */, fill:false, spanGaps:true},
+      {label:''+(Y-1), data:previo, borderColor:'#8A9BAA', borderWidth:2, borderDash:[6,4], pointRadius:3, pointHoverRadius:5, tension:.3, cubicInterpolationMode:'monotone' /* [EBG 2026-11-11] sin sobrepaso entre puntos */, fill:false, spanGaps:true},
       {label:(metaDifiere?'Meta '+Y:'Meta'), data:metaA, borderColor:'#EB002A', borderDash:[5,4], borderWidth:2, pointRadius:0, fill:false}
     ].concat(metaDifiere ? [{label:'Meta '+(Y-1), data:metaP, borderColor:'#F3A6B2', borderDash:[3,3], borderWidth:1.5, pointRadius:0, fill:false}] : [])},
     options: chartOptions(kpi, actual.concat(previo, metaA, metaDifiere?metaP:[]), ndYoY)
@@ -1087,7 +1084,7 @@ function renderTrendChart(kpi){
     data:{ labels: serie.map(function(s){ return s.label + (idxCurso>=0 && s === serie[idxCurso] ? ' •' : ''); }),
       datasets:[
         {label:kpi.nombre, data:serie.map(function(s){return s.value;}), borderColor:'#003A5D', backgroundColor:'rgba(0,58,93,.10)', borderWidth:2.5,
-         pointRadius:ptR, pointHoverRadius:6, pointBackgroundColor:ptBg, pointBorderColor:ptBd, pointBorderWidth:ptBw, tension:.3, fill:true, spanGaps:true,
+         pointRadius:ptR, pointHoverRadius:6, pointBackgroundColor:ptBg, pointBorderColor:ptBd, pointBorderWidth:ptBw, tension:.3, cubicInterpolationMode:'monotone' /* [EBG 2026-11-11] sin sobrepaso entre puntos */, fill:true, spanGaps:true,
          segment:{ borderDash:function(ctx){ return ctx.p1DataIndex === idxCurso ? [6,4] : undefined; } }},
         {label:'Meta', data:metaLine, borderColor:'#EB002A', borderDash:[5,4], borderWidth:2, pointRadius:0, fill:false}
       ]},
