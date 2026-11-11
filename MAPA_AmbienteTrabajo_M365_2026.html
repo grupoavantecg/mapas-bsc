@@ -241,7 +241,7 @@ footer strong{color:var(--azul);}
 const CONFIG = { proceso:'Gestión del Ambiente de Trabajo', procesoCode:'ambiente', eje:'Cultura y Desarrollo de las Personas',
   responsable:'ISC', responsableNombre:'Ilse',
   ventanaInicio:1, ventanaFin:7, storageKey:'ga_proc_ambiente', version:'3.0', historiaUrl:null,
-  procesosExternos:['Gestión del Talento'],
+  procesosExternos:[], /* [EBG 2026-11-11] antes ['Gestión del Talento'], solo lo usaba DH-044 */
   usuarios:{
     'luisecasillas@casamobel.mx':{id:'LECG', admin:true, purga:true, procesos:'*'},
     'econhogar@casamobel.mx':{id:'MAJR', procesos:['Cobranza','Ventas','Atracción y Satisfacción del Cliente']},
@@ -259,10 +259,7 @@ const CONFIG = { proceso:'Gestión del Ambiente de Trabajo', procesoCode:'ambien
 
 /* KPIs Matriz de Trazabilidad v010 · metas desde Config_KPI (null en código público) */
 const KPIS = [
-{id:'tasa_competitividad', matriz:'DH-044', nombre:'Tasa de Competitividad', nivel:'estrategico', cadencia:'trimestral',
- formula:'Colaboradores con competencias certificadas / Total de la plantilla', respDato:'Dirección General', meta:null, unidad:'%', activo:true,
- fuentes:[{externo:{proceso:'Gestión del Talento', slot:'tasa_competitividad', calcular:function(v){return v.plantilla > 0 ? (v.certificados / v.plantilla * 100) : null;}}, cadencia:'trimestral', peso:1, etiqueta:'Gestión del Talento'}],
- semaforo:function(val,m){return val >= 80 ? 'v' : (val >= 74 ? 'a' : 'r');}},
+/* [EBG 2026-11-11 · aprobado LECG] DH-044 Tasa de Competitividad retirado: se muestra solo en Gestión del Talento (proceso dueño) */
 {id:'compatibilidad_habitos', matriz:'DH-046', nombre:'Tasa de Compatibilidad con los Hábitos Fundamentales', nivel:'tactico', cadencia:'trimestral',
  formula:'Respuestas alineadas con Hábitos Fundamentales / Total de respuestas', respDato:'LEE Desarrollo Humano', meta:null, unidad:'%', activo:true,
  campos:[{id:'alineadas', label:'Respuestas alineadas con los Hábitos Fundamentales', u:'conteo'},{id:'respuestas', label:'Total de respuestas del cuestionario', u:'conteo'}],
