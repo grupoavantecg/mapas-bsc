@@ -43,6 +43,11 @@ header{background:linear-gradient(135deg,var(--azul) 0%,var(--azul2) 100%);color
 .window-banner{padding:8px 16px;border-radius:var(--r);margin-bottom:10px;font-size:12px;font-weight:600;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
 .window-banner.open{background:#dcfce7;color:#15803d;border:1px solid #86efac;}
 .window-banner.late{background:#fef3c7;color:#92400e;border:1px solid #fcd34d;}
+/* [EBG 2026-10-26 · a producción 2026-11-11] En la pestaña Panel solo se muestra el periodo (la leyenda de la ventana de captura queda en Registrar Datos e Historial) */
+body:not([data-tab]) .wb-msg, body[data-tab="panel"] .wb-msg{display:none;}
+body[data-tab]:not([data-tab="panel"]) .wb-datos{display:none;}
+.wb-datos{font-weight:500;}
+.wb-per{margin-left:auto;}
 .autosave-bar{height:24px;display:flex;align-items:center;justify-content:flex-end;padding:0 4px;}
 .autosave-txt{font-size:10px;color:var(--muted);transition:.3s;}
 .autosave-txt.saved{color:var(--verde);}
@@ -405,6 +410,8 @@ function isoWeeksOfMonth(ym){ var y = +ym.slice(0,4), m = +ym.slice(5,7);
     if (th.getUTCFullYear() === y && th.getUTCMonth() === m-1) out.push(weekKeyOf(new Date(th.getUTCFullYear(), th.getUTCMonth(), th.getUTCDate())));
     d.setUTCDate(d.getUTCDate()+7); }
   return out; }
+/* [EBG 2026-10-22 · a producción 2026-11-11] Gráfica semanal: 11 semanas cerradas + la semana en curso (antes: 12 cerradas) */
+function semanasGrafica(){ var w = recentIsoWeeks(12); w.push(weekKeyOf(new Date())); return w; }
 function recentIsoWeeks(n){ var out = [], hoy = new Date();
   for (var i=n-1;i>=1;i--){ var d = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate()-7*i); out.push(weekKeyOf(d)); }
   return out; }
@@ -444,7 +451,7 @@ function getWindowStatus(){
 }
 function renderWindow(){ var w = getWindowStatus(), e = document.getElementById('window-banner');
   e.className = 'window-banner '+w.status;
-  e.innerHTML = '<span>'+w.msg+'</span><span><strong>Periodo:</strong> '+w.label+'</span>';
+  e.innerHTML = '<span class="wb-msg">'+w.msg+'</span><span class="wb-datos" id="wb-datos">'+textoDatosCarga()+'</span><span class="wb-per"><strong>Periodo:</strong> '+w.label+'</span>'; /* [EBG 2026-10-26 · a producción 2026-11-11] clases wb-msg / wb-per */
   var chip = document.getElementById('chip-periodo'); if (chip) chip.textContent = w.label;
   state.currentPeriod = w.period; state.windowStatus = w.status; }
 
@@ -793,7 +800,23 @@ function coberturaResuelta(kpi, er, mesRef){
 /* ¿esta banda tiene KPIs por entidad? */
 function bandaTieneEntidad(nivel){ return tieneEntidades() && KPIS.some(function(k){ return k.nivel===nivel && esEntidad(k); }); }
 
+/* [EBG 2026-10-26 · a producción 2026-11-11] Barra del Panel: frescura y origen de los datos.
+   Toma la captura automática más reciente (Campos.registro = "automatico") y la próxima corrida del flujo. */
+var CARGA_AUTO = { fuente:'(sin flujo)', dia:1 /* lunes */, hora:9, min:0 }; /* Planeación aún sin carga automática: sin registros "automatico" la barra muestra la última captura manual */
+function textoDatosCarga(){
+  var ult = null, ultMan = null;
+  Object.keys(state.data || {}).forEach(function(p){ var d = state.data[p] || {};
+    Object.keys(d).forEach(function(k){ var e = d[k]; if (!e || !e.timestamp) return; var t = new Date(e.timestamp); if (isNaN(t)) return;
+      if (e.registro === 'automatico'){ if (!ult || t > ult) ult = t; } else if (!ultMan || t > ultMan) ultMan = t; }); });
+  var f = function(t){ return t.toLocaleDateString('es-MX',{day:'numeric',month:'short'}).replace('.','') + ' ' + t.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}); };
+  if (!ult) return ultMan ? 'Datos capturados manualmente · última captura ' + f(ultMan) : 'Sin datos cargados';
+  var n = new Date(); n.setHours(CARGA_AUTO.hora, CARGA_AUTO.min, 0, 0);
+  var dd = (CARGA_AUTO.dia - n.getDay() + 7) % 7; if (dd === 0 && new Date() >= n) dd = 7; n.setDate(n.getDate() + dd);
+  var prox = n.toLocaleDateString('es-MX',{weekday:'short',day:'numeric',month:'short'}).replace(/\./g,'') + ' ' + pad2(CARGA_AUTO.hora) + ':' + pad2(CARGA_AUTO.min);
+  return 'Datos al ' + f(ult) + ' · carga automática ' + CARGA_AUTO.fuente + ' · próxima: ' + prox;
+}
 function renderPanel(){
+  var _wd = document.getElementById('wb-datos'); if (_wd) _wd.textContent = textoDatosCarga(); /* [EBG 2026-10-26 · a producción 2026-11-11] */
   for (var k in state.charts) { try { state.charts[k].destroy(); } catch(e){} }
   state.charts = {};
   var html = chartViewToggleHtml();
@@ -804,7 +827,7 @@ function renderPanel(){
     if (bandaTieneEntidad(b[0])) html += entSelectorHtml();
     html += '<div class="kpi-grid">';
     arr.forEach(function(kpi, idx){
-      var full = (arr.length === 1) || (arr.length % 2 === 1 && idx === arr.length-1);
+      var full = true; /* [EBG 2026-10-26 · a producción 2026-11-11] una gráfica por fila, como Almacén (antes: 2 por fila si la banda tiene 2+ KPIs) */
       html += renderKpiCard(kpi, full);
     });
     html += '</div></div>';
@@ -1041,8 +1064,8 @@ function renderYoYChart(kpi, box){
   state.charts[kpi.id] = new Chart(canvas.getContext('2d'), {
     type:'line',
     data:{ labels:labels, datasets:[
-      {label:''+Y, data:actual, borderColor:'#003A5D', backgroundColor:'rgba(0,58,93,.10)', borderWidth:2.5, pointRadius:4, pointHoverRadius:6, tension:.3, fill:false, spanGaps:true},
-      {label:''+(Y-1), data:previo, borderColor:'#8A9BAA', borderWidth:2, borderDash:[6,4], pointRadius:3, pointHoverRadius:5, tension:.3, fill:false, spanGaps:true},
+      {label:''+Y, data:actual, borderColor:'#003A5D', backgroundColor:'rgba(0,58,93,.10)', borderWidth:2.5, pointRadius:4, pointHoverRadius:6, tension:.3, cubicInterpolationMode:'monotone', /* [EBG 2026-10-26 · a producción 2026-11-11] sin sobrepaso de la curva */ fill:false, spanGaps:true},
+      {label:''+(Y-1), data:previo, borderColor:'#8A9BAA', borderWidth:2, borderDash:[6,4], pointRadius:3, pointHoverRadius:5, tension:.3, cubicInterpolationMode:'monotone', /* [EBG 2026-10-26 · a producción 2026-11-11] sin sobrepaso de la curva */ fill:false, spanGaps:true},
       {label:(metaDifiere?'Meta '+Y:'Meta'), data:metaA, borderColor:'#EB002A', borderDash:[5,4], borderWidth:2, pointRadius:0, fill:false}
     ].concat(metaDifiere ? [{label:'Meta '+(Y-1), data:metaP, borderColor:'#F3A6B2', borderDash:[3,3], borderWidth:1.5, pointRadius:0, fill:false}] : [])},
     options: chartOptions(kpi, actual.concat(previo, metaA, metaDifiere?metaP:[]), ndYoY)
@@ -1055,7 +1078,7 @@ function renderTrendChart(kpi){
   if (esEntidad(kpi)){
     var er = entResuelta(kpi);
     if (kpi.cadencia === 'semanal'){
-      recentIsoWeeks(13).forEach(function(wk){ serie.push({label:'S'+(+wk.slice(6)), value:valOpe(kpi, er, wk), key:wk}); });
+      semanasGrafica().forEach(function(wk){ serie.push({label:'S'+(+wk.slice(6)), value:valOpe(kpi, er, wk), key:wk}); });
     } else {
       candidatePeriods(kpi.cadencia).slice(0,8).reverse().forEach(function(pk){
         var lbl = (kpi.cadencia==='trimestral') ? ('Q'+pk.slice(6)+' '+pk.slice(2,4)) : pk.slice(5);
@@ -1063,7 +1086,7 @@ function renderTrendChart(kpi){
       });
     }
   } else if (kpi.cadencia === 'semanal'){
-    recentIsoWeeks(13).forEach(function(wk){ serie.push({label:'S'+(+wk.slice(6)), value:valorKpiEnPeriodo(kpi, wk), key:wk}); });
+    semanasGrafica().forEach(function(wk){ serie.push({label:'S'+(+wk.slice(6)), value:valorKpiEnPeriodo(kpi, wk), key:wk}); });
   } else {
     if (state.chartView === 'yoy'){ renderYoYChart(kpi, box); return; }
     if (kpi.cadencia === 'trimestral'){
@@ -1072,7 +1095,7 @@ function renderTrendChart(kpi){
     } else {
       var hoy = new Date();
       for (var i = 11; i >= 0; i--){
-        var d = new Date(hoy.getFullYear(), hoy.getMonth() - i - 1, 15);
+        var d = new Date(hoy.getFullYear(), hoy.getMonth() - i, 15); /* [EBG 2026-10-22 · a producción 2026-11-11] 12 meses que terminan en el mes EN CURSO (antes: en el último cerrado); el punto en curso se dibuja hueco/naranja con línea punteada */
         var key = d.getFullYear()+'-'+pad2(d.getMonth()+1);
         serie.push({label:d.toLocaleDateString('es-MX',{month:'short'}).slice(0,3), value:valorKpiEnPeriodo(kpi, key), key:key});
       }
@@ -1098,7 +1121,7 @@ function renderTrendChart(kpi){
     data:{ labels: serie.map(function(s){ return s.label + (idxCurso>=0 && s === serie[idxCurso] ? ' •' : ''); }),
       datasets:[
         {label:kpi.nombre, data:serie.map(function(s){return s.value;}), borderColor:'#003A5D', backgroundColor:'rgba(0,58,93,.10)', borderWidth:2.5,
-         pointRadius:ptR, pointHoverRadius:6, pointBackgroundColor:ptBg, pointBorderColor:ptBd, pointBorderWidth:ptBw, tension:.3, fill:true, spanGaps:true,
+         pointRadius:ptR, pointHoverRadius:6, pointBackgroundColor:ptBg, pointBorderColor:ptBd, pointBorderWidth:ptBw, tension:.3, cubicInterpolationMode:'monotone', /* [EBG 2026-10-26 · a producción 2026-11-11] sin sobrepaso de la curva */ fill:true, spanGaps:true,
          segment:{ borderDash:function(ctx){ return ctx.p1DataIndex === idxCurso ? [6,4] : undefined; } }},
         {label:'Meta', data:metaLine, borderColor:'#EB002A', borderDash:[5,4], borderWidth:2, pointRadius:0, fill:false}
       ]},
@@ -1336,6 +1359,7 @@ function renderHistorial(){
 }
 
 function switchTab(t){
+  document.body.setAttribute('data-tab', t); /* [EBG 2026-10-26 · a producción 2026-11-11] */
   document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
   document.querySelector('.tab-btn[data-tab="'+t+'"]').classList.add('active');
   ['panel','captura','historial'].forEach(function(x){ document.getElementById('tab-'+x).classList.add('hidden'); });
@@ -1888,7 +1912,7 @@ async function adminInitConfig(){
     var inp = document.getElementById('file-config'); var fname = inp.files[0] ? inp.files[0].name : '';
     var spec = await readFile(inp);
     var kpis = spec.kpis || []; var proc = (spec.config && spec.config.proceso) || CONFIG.proceso;
-    if (proc !== CONFIG.proceso) throw new Error('El spec es del proceso "' + proc + '"; este MAPA es "' + CONFIG.proceso + '". Usa el MAPA de ese proceso.');
+    if (proc !== CONFIG.proceso) throw new Error('El spec es del proceso "' + proc + '"; este Panel BSC es "' + CONFIG.proceso + '". Usa el Panel BSC de ese proceso.');
     var ids = await resolveIds(); var mCfg = await getColMap(ids.config);
     var recs = kpis.filter(function(k){ return k.activo !== false; });
     adminMsg('Leyendo Config_KPI…');
