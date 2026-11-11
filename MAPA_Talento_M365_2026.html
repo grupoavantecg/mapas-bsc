@@ -793,7 +793,7 @@ function renderPanel(){
     if (bandaTieneEntidad(b[0])) html += entSelectorHtml();
     html += '<div class="kpi-grid">';
     arr.forEach(function(kpi, idx){
-      var full = (arr.length === 1) || (arr.length % 2 === 1 && idx === arr.length-1);
+      var full = true; /* [EBG 2026-11-11] una gráfica por fila (antes: 2 por fila) */
       html += renderKpiCard(kpi, full);
     });
     html += '</div></div>';
@@ -1030,8 +1030,8 @@ function renderYoYChart(kpi, box){
   state.charts[kpi.id] = new Chart(canvas.getContext('2d'), {
     type:'line',
     data:{ labels:labels, datasets:[
-      {label:''+Y, data:actual, borderColor:'#003A5D', backgroundColor:'rgba(0,58,93,.10)', borderWidth:2.5, pointRadius:4, pointHoverRadius:6, tension:.3, fill:false, spanGaps:true},
-      {label:''+(Y-1), data:previo, borderColor:'#8A9BAA', borderWidth:2, borderDash:[6,4], pointRadius:3, pointHoverRadius:5, tension:.3, fill:false, spanGaps:true},
+      {label:''+Y, data:actual, borderColor:'#003A5D', backgroundColor:'rgba(0,58,93,.10)', borderWidth:2.5, pointRadius:4, pointHoverRadius:6, tension:.3, cubicInterpolationMode:'monotone' /* [EBG 2026-11-11] sin sobrepaso entre puntos */, fill:false, spanGaps:true},
+      {label:''+(Y-1), data:previo, borderColor:'#8A9BAA', borderWidth:2, borderDash:[6,4], pointRadius:3, pointHoverRadius:5, tension:.3, cubicInterpolationMode:'monotone' /* [EBG 2026-11-11] sin sobrepaso entre puntos */, fill:false, spanGaps:true},
       {label:(metaDifiere?'Meta '+Y:'Meta'), data:metaA, borderColor:'#EB002A', borderDash:[5,4], borderWidth:2, pointRadius:0, fill:false}
     ].concat(metaDifiere ? [{label:'Meta '+(Y-1), data:metaP, borderColor:'#F3A6B2', borderDash:[3,3], borderWidth:1.5, pointRadius:0, fill:false}] : [])},
     options: chartOptions(kpi, actual.concat(previo, metaA, metaDifiere?metaP:[]), ndYoY)
@@ -1087,7 +1087,7 @@ function renderTrendChart(kpi){
     data:{ labels: serie.map(function(s){ return s.label + (idxCurso>=0 && s === serie[idxCurso] ? ' •' : ''); }),
       datasets:[
         {label:kpi.nombre, data:serie.map(function(s){return s.value;}), borderColor:'#003A5D', backgroundColor:'rgba(0,58,93,.10)', borderWidth:2.5,
-         pointRadius:ptR, pointHoverRadius:6, pointBackgroundColor:ptBg, pointBorderColor:ptBd, pointBorderWidth:ptBw, tension:.3, fill:true, spanGaps:true,
+         pointRadius:ptR, pointHoverRadius:6, pointBackgroundColor:ptBg, pointBorderColor:ptBd, pointBorderWidth:ptBw, tension:.3, cubicInterpolationMode:'monotone' /* [EBG 2026-11-11] sin sobrepaso entre puntos */, fill:true, spanGaps:true,
          segment:{ borderDash:function(ctx){ return ctx.p1DataIndex === idxCurso ? [6,4] : undefined; } }},
         {label:'Meta', data:metaLine, borderColor:'#EB002A', borderDash:[5,4], borderWidth:2, pointRadius:0, fill:false}
       ]},
