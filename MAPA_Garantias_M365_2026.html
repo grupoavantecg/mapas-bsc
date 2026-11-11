@@ -258,7 +258,7 @@ const CONFIG = { proceso:'Gestión de las Garantías y Servicios', procesoCode:'
 
 /* KPIs Matriz de Trazabilidad v010 · metas desde Config_KPI (null en código público) */
 const KPIS = [
-{id:'resolucion_garantias', matriz:'SUM-032', nombre:'Resolución de Garantías', nivel:'tactico', cadencia:'mensual',
+{id:'resolucion_garantias', matriz:'SUM-032', cargaAuto:'FOR-SGG-004' /* [EBG 2026-11-11] bloquea captura manual: lo carga el flujo cada lunes */, nombre:'Resolución de Garantías', nivel:'tactico', cadencia:'mensual',
  formula:'Garantías resueltas en ≤30 días / Total de garantías', respDato:'RP - Garantías (AGG)', meta:null, unidad:'%', activo:true,
  campos:[{id:'resueltas_30d', label:'Garantías resueltas en ≤30 días', u:'conteo'},{id:'garantias_total', label:'Total de garantías', u:'conteo'}],
  calcular:function(v){return v.garantias_total > 0 ? (v.resueltas_30d / v.garantias_total * 100) : null;},
@@ -1104,6 +1104,7 @@ function setCapRuta(r){ state.capRuta = r; renderCaptura(); }
 function derivableEn(kpi, periodo){ return esDerivado(kpi) && valorDerivado(kpi, periodo) !== null; }
 function capturableEn(kpi, periodo){
   if (!kpi.activo || kpi.entidadDerivada || esCruzado(kpi)) return false;
+  if (kpi.cargaAuto) return false; /* [EBG 2026-11-11] carga automática: sin captura manual */
   if (kpi.porEntidad) return true;
   if (esDerivado(kpi)) return !!kpi.capturaFallback && !derivableEn(kpi, periodo);
   return !!kpi.campos;
@@ -1148,6 +1149,12 @@ function renderCaptura(){
         '<div class="cap-na">⚙ KPI <strong>derivado por entidad</strong> — no se captura. Se agrega automáticamente de las rutas de cada cobrador ('+(kpiById(kpi.entidadDerivada.src)||{}).nombre+').</div></div>';
       return;
     }
+    if (kpi.cargaAuto){ /* [EBG 2026-11-11] */
+      html += '<div class="cap-kpi"><h4>'+kpi.nombre+' <span class="cap-pill">Carga automática</span></h4>' +
+        '<div class="formula">'+kpi.formula+'</div>' +
+        '<div class="cap-na">⚙ Este KPI <strong>no se captura aquí</strong>. Se carga automáticamente cada lunes a las 09:00 desde <strong>'+kpi.cargaAuto+'</strong>. Para corregir un dato, actualiza el Excel; el siguiente lunes se refleja.</div></div>';
+      return;
+    }
     if (esDerivado(kpi) && !capturableEn(kpi, periodo)){
       var fuentes = kpi.derivaDe.map(function(id){ var s = kpiById(id); return s ? s.nombre : id; }).join(', ');
       html += '<div class="cap-kpi"><h4>'+kpi.nombre+' <span class="cap-pill">Se calcula: '+periodo+'</span></h4>' +
@@ -1176,6 +1183,7 @@ function renderCaptura(){
     '</div></div>';
   document.getElementById('tab-captura').innerHTML = html;
   document.getElementById('btn-cap-save').onclick = handleSaveCaptura;
+  if (!kpisCad.some(function(k){ return capturableEn(k, periodo); })){ var _b=document.getElementById('btn-cap-save'); _b.disabled=true; _b.title='Sin KPIs de captura manual en esta cadencia'; } /* [EBG 2026-11-11] */
   document.getElementById('btn-cap-cancel').onclick = function(){ switchTab('panel'); };
   kpisCad.forEach(function(kpi){ if (capturableEn(kpi, periodo)) updateCalcResult(kpi); });
   document.querySelectorAll('#tab-captura input[type=number]').forEach(function(inp){
