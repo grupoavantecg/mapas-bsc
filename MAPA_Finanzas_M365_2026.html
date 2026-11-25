@@ -269,8 +269,8 @@ const KPIS = [
  calcular:function(v){return v.monto_presupuestado > 0 ? ((1 - Math.abs(v.monto_ejercido - v.monto_presupuestado)/v.monto_presupuestado) * 100) : null;},
  semaforo:function(val,m){return val >= 90 ? 'v' : (val >= 80 ? 'a' : 'r');}},
 {id:'cumplimiento_pagos', matriz:'FIN-003', nombre:'Cumplimiento de Pagos', nivel:'operativo', cadencia:'mensual',
- formula:'Monto pagado / Monto acordado para pago', respDato:'LEE Finanzas', meta:null, unidad:'%', activo:true,
- campos:[{id:'monto_pagado', label:'Monto pagado', u:'moneda'},{id:'monto_acordado', label:'Monto acordado para pago', u:'moneda'}],
+ formula:'Monto pagado en tiempo / Monto acordado para pago' /* [EBG 2026-11-25] aprobado LECG 2026-11-25 */, respDato:'LEE Finanzas', meta:null, unidad:'%', activo:true,
+ campos:[{id:'monto_pagado', label:'Monto pagado en tiempo', u:'moneda'},{id:'monto_acordado', label:'Monto acordado para pago', u:'moneda'}],
  calcular:function(v){return v.monto_acordado > 0 ? (v.monto_pagado / v.monto_acordado * 100) : null;},
  semaforo:function(val,m){return val >= 100 ? 'v' : (val >= 95 ? 'a' : 'r');}},
 {id:'descuentos_obtenidos', matriz:'FIN-004', nombre:'Descuentos Obtenidos', nivel:'operativo', cadencia:'mensual',
@@ -1117,7 +1117,11 @@ function capPerHoy(){ var cad = capCadActual(); state.capPer[cad] = periodoCerra
 function setCapRuta(r){ state.capRuta = r; renderCaptura(); }
 /* Derivable en el periodo = ya existe captura de nivel inferior → bloquear captura directa */
 function derivableEn(kpi, periodo){ return esDerivado(kpi) && valorDerivado(kpi, periodo) !== null; }
+/* [EBG 2026-11-25] Captura manual bloqueada: FIN-001…FIN-004 los carga el flujo de Power Automate desde los Excel de Finanzas (aprobado LECG 2026-11-25) */
+var CAPTURA_AUTO = { variacion_presupuestal:'Estados Financieros y Presupuestos (hoja DATOS PANEL)', efectividad_presupuestal:'Estados Financieros y Presupuestos (hoja DATOS PANEL)', cumplimiento_pagos:'FOR-REF-001 Control de Cuentas por Pagar (hoja DATOS PANEL)', descuentos_obtenidos:'FOR-REF-001 Control de Cuentas por Pagar (hoja DATOS PANEL)' };
+function esCapturaAuto(kpi){ return !!CAPTURA_AUTO[kpi.id]; }
 function capturableEn(kpi, periodo){
+  if (esCapturaAuto(kpi)) return false; /* [EBG 2026-11-25] */
   if (!kpi.activo || kpi.entidadDerivada || esCruzado(kpi)) return false;
   if (kpi.porEntidad) return true;
   if (esDerivado(kpi)) return !!kpi.capturaFallback && !derivableEn(kpi, periodo);
@@ -1158,6 +1162,15 @@ function renderCaptura(){
 
   kpisCad.forEach(function(kpi){
     var pillTxt = 'Capturando: ' + labelPeriodo(periodo) + (kpi.porEntidad ? ' · '+entLabel(entLeaf())+' '+state.capRuta : '');
+    if (esCapturaAuto(kpi)){ /* [EBG 2026-11-25] */
+      var regAuto = (state.data[periodo]||{})[kpi.id];
+      html += '<div class="cap-kpi"><h4>'+kpi.nombre+' <span class="cap-pill">Carga automática: '+periodo+'</span></h4>' +
+        '<div class="formula">'+kpi.formula+'</div>' +
+        '<div class="cap-na">🔒 <strong>Captura manual bloqueada</strong> — este KPI lo registra el flujo de Power Automate desde el Excel '+CAPTURA_AUTO[kpi.id]+'. ' +
+        (regAuto && regAuto.valores && Object.keys(regAuto.valores).length ? 'Valor cargado para '+labelPeriodo(periodo)+': <strong>'+fmtVal(kpi, kpi.calcular(regAuto.valores))+'</strong>. ' : 'Aún no hay carga para '+labelPeriodo(periodo)+'. ') +
+        'Para corregir un dato, corrígelo en el Excel antes del lunes 09:00 (el flujo corre cada semana).</div></div>';
+      return;
+    }
     if (kpi.entidadDerivada){
       html += '<div class="cap-kpi"><h4>'+kpi.nombre+' <span class="cap-pill">Se calcula: '+periodo+'</span></h4>' +
         '<div class="cap-na">⚙ KPI <strong>derivado por entidad</strong> — no se captura. Se agrega automáticamente de las rutas de cada cobrador ('+(kpiById(kpi.entidadDerivada.src)||{}).nombre+').</div></div>';
