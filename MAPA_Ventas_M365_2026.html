@@ -1051,7 +1051,7 @@ function renderTrendChart(kpi){
     } else {
       var hoy = new Date();
       for (var i = 11; i >= 0; i--){
-        var d = new Date(hoy.getFullYear(), hoy.getMonth() - i - 1, 15);
+        var d = new Date(hoy.getFullYear(), hoy.getMonth() - i, 15); /* [EBG 2026-11-26] 12 meses que terminan en el mes EN CURSO (antes: en el último cerrado); el punto en curso se dibuja hueco/naranja con línea punteada */
         var key = d.getFullYear()+'-'+pad2(d.getMonth()+1);
         serie.push({label:d.toLocaleDateString('es-MX',{month:'short'}).slice(0,3), value:valorKpiEnPeriodo(kpi, key), key:key});
       }
