@@ -277,34 +277,34 @@ const KPIS = [
  semaforo:function(val,m){return val >= m ? 'v' : (val >= m*0.92 ? 'a' : 'r');}},
 {id:'dinero_cobrado', matriz:'COB-012', nombre:'Dinero Cobrado', nivel:'tactico', cadencia:'mensual',
  formula:'Total de dinero cobrado / Total de valor de Cartera Global', respDato:'LEE Cobranza', meta:null, unidad:'%', activo:true,
- derivaDe:['dinero_ruta'], agregacion:'ponderado', capturaFallback:true,
+ derivaDe:['dinero_ruta'], agregacion:'ponderado', capturaFallback:true, capturaFallbackHasta:'2026-06' /* [EBG 2026-11-26] captura de cierre solo para meses previos a SAGAN (desde 2026-W29 la carga es automática) */,
  campos:[{id:'dinero_cobrado', label:'Total de dinero cobrado', u:'moneda'},{id:'valor_cartera', label:'Total de valor de Cartera Global', u:'moneda'}],
  calcular:function(v){return v.valor_cartera > 0 ? (v.dinero_cobrado / v.valor_cartera * 100) : null;},
  semaforo:function(val,m){return val >= m ? 'v' : (val >= m*0.92 ? 'a' : 'r');}},
 {id:'cuentas_cobradas', matriz:'COB-013', nombre:'Cuentas Cobradas', nivel:'tactico', cadencia:'mensual',
  formula:'Total de cuentas cobradas / Total de cuentas en Cartera Global', respDato:'LEE Cobranza', meta:null, unidad:'%', activo:true,
- derivaDe:['cuentas_ruta'], agregacion:'ponderado', capturaFallback:true,
+ derivaDe:['cuentas_ruta'], agregacion:'ponderado', capturaFallback:true, capturaFallbackHasta:'2026-06' /* [EBG 2026-11-26] captura de cierre solo para meses previos a SAGAN (desde 2026-W29 la carga es automática) */,
  campos:[{id:'cuentas_cobradas', label:'Total de cuentas cobradas', u:'conteo'},{id:'cuentas_cartera', label:'Total de cuentas en Cartera Global', u:'conteo'}],
  calcular:function(v){return v.cuentas_cartera > 0 ? (v.cuentas_cobradas / v.cuentas_cartera * 100) : null;},
  semaforo:function(val,m){return val >= m ? 'v' : (val >= m*0.92 ? 'a' : 'r');}},
 {id:'cuentas_atendidas', matriz:'COB-014', nombre:'Cuentas Atendidas', nivel:'tactico', cadencia:'mensual',
  formula:'Clientes visitados / Total de clientes en Cartera Global', respDato:'LEE Cobranza', meta:null, unidad:'%', activo:true,
- derivaDe:['atendidas_ruta'], agregacion:'ponderado', capturaFallback:true,
+ derivaDe:['atendidas_ruta'], agregacion:'ponderado', capturaFallback:true, capturaFallbackHasta:'2026-06' /* [EBG 2026-11-26] captura de cierre solo para meses previos a SAGAN (desde 2026-W29 la carga es automática) */,
  campos:[{id:'clientes_visitados', label:'Clientes visitados', u:'conteo'},{id:'clientes_cartera', label:'Total de clientes en Cartera Global', u:'conteo'}],
  calcular:function(v){return v.clientes_cartera > 0 ? (v.clientes_visitados / v.clientes_cartera * 100) : null;},
  semaforo:function(val,m){return val >= m ? 'v' : (val >= m*0.9 ? 'a' : 'r');}},
 {id:'dinero_ruta', matriz:'COB-016', nombre:'Dinero Cobrado por Ruta', nivel:'operativo', cadencia:'semanal',
- formula:'Dinero cobrado / Valor de la ruta', respDato:'Gestor de Cobranza', meta:null, unidad:'%', activo:true, porEntidad:'ruta',
+ formula:'Dinero cobrado / Valor de la ruta', respDato:'Gestor de Cobranza', meta:null, unidad:'%', activo:true, porEntidad:'ruta', cargaAuto:'SAGAN' /* [EBG 2026-11-26] carga automática: no editable en Registrar Datos */,
  campos:[{id:'dinero_cobrado', label:'Dinero cobrado en la ruta', u:'moneda'},{id:'valor_ruta', label:'Valor de la ruta', u:'moneda'}],
  calcular:function(v){return v.valor_ruta > 0 ? (v.dinero_cobrado / v.valor_ruta * 100) : null;},
  semaforo:function(val,m){return val >= m ? 'v' : (val >= m*0.92 ? 'a' : 'r');}},
 {id:'cuentas_ruta', matriz:'COB-018', nombre:'Cuentas Cobradas por Ruta', nivel:'operativo', cadencia:'semanal',
- formula:'Cuentas cobradas / Cuentas en ruta', respDato:'Gestor de Cobranza', meta:null, unidad:'%', activo:true, porEntidad:'ruta',
+ formula:'Cuentas cobradas / Cuentas en ruta', respDato:'Gestor de Cobranza', meta:null, unidad:'%', activo:true, porEntidad:'ruta', cargaAuto:'SAGAN' /* [EBG 2026-11-26] carga automática: no editable en Registrar Datos */,
  campos:[{id:'cuentas_cobradas', label:'Cuentas cobradas en la ruta', u:'conteo'},{id:'cuentas_ruta', label:'Cuentas en ruta', u:'conteo'}],
  calcular:function(v){return v.cuentas_ruta > 0 ? (v.cuentas_cobradas / v.cuentas_ruta * 100) : null;},
  semaforo:function(val,m){return val >= m ? 'v' : (val >= m*0.92 ? 'a' : 'r');}},
 {id:'atendidas_ruta', matriz:'COB-020', nombre:'Cuentas Atendidas por Ruta', nivel:'operativo', cadencia:'semanal',
- formula:'Clientes visitados / Total de clientes en ruta', respDato:'Gestor de Cobranza', meta:null, unidad:'%', activo:true, porEntidad:'ruta',
+ formula:'Clientes visitados / Total de clientes en ruta', respDato:'Gestor de Cobranza', meta:null, unidad:'%', activo:true, porEntidad:'ruta', cargaAuto:'SAGAN' /* [EBG 2026-11-26] carga automática: no editable en Registrar Datos */,
  campos:[{id:'clientes_visitados', label:'Clientes visitados en la ruta', u:'conteo'},{id:'clientes_ruta', label:'Total de clientes en ruta', u:'conteo'}],
  calcular:function(v){return v.clientes_ruta > 0 ? (v.clientes_visitados / v.clientes_ruta * 100) : null;},
  semaforo:function(val,m){return val >= m ? 'v' : (val >= m*0.85 ? 'a' : 'r');}},
@@ -1189,17 +1189,17 @@ function capCadActual(){ var cads = cadenciasDisponibles();
   if (state.capCad && cads.indexOf(state.capCad) >= 0) return state.capCad;
   return cads[0]; }
 function capPerActual(cad){ if (!state.capPer[cad]) state.capPer[cad] = periodoCerrado(cad); return state.capPer[cad]; }
-function setCapCad(c){ state.capCad = c; renderCaptura(); }
-function navCapPer(delta){ var cad = capCadActual(); var k = navKey(capPerActual(cad), delta);
+function setCapCad(c){ state.capCad = c; state.capEditAuto = false; renderCaptura(); } /* [EBG 2026-11-26] el desbloqueo no se arrastra */
+function navCapPer(delta){ state.capEditAuto = false; /* [EBG 2026-11-26] el desbloqueo no se arrastra */ var cad = capCadActual(); var k = navKey(capPerActual(cad), delta);
   if (k > periodoCerrado(cad)) return; state.capPer[cad] = k; renderCaptura(); }
-function capPerHoy(){ var cad = capCadActual(); state.capPer[cad] = periodoCerrado(cad); renderCaptura(); }
-function setCapRuta(r){ state.capRuta = r; renderCaptura(); }
+function capPerHoy(){ var cad = capCadActual(); state.capPer[cad] = periodoCerrado(cad); state.capEditAuto = false; renderCaptura(); } /* [EBG 2026-11-26] el desbloqueo no se arrastra */
+function setCapRuta(r){ state.capRuta = r; state.capEditAuto = false; renderCaptura(); } /* [EBG 2026-11-26] el desbloqueo no se arrastra */
 /* Derivable en el periodo = ya existe captura de nivel inferior → bloquear captura directa */
 function derivableEn(kpi, periodo){ return esDerivado(kpi) && valorDerivado(kpi, periodo) !== null; }
 function capturableEn(kpi, periodo){
   if (!kpi.activo || kpi.entidadDerivada || esCruzado(kpi)) return false;
   if (kpi.porEntidad) return true;
-  if (esDerivado(kpi)) return !!kpi.capturaFallback && !derivableEn(kpi, periodo);
+  if (esDerivado(kpi)) return !!kpi.capturaFallback && !derivableEn(kpi, periodo) && !(kpi.capturaFallbackHasta && periodo > kpi.capturaFallbackHasta); /* [EBG 2026-11-26] */
   return !!kpi.campos;
 }
 function slotDe(kpi){ return kpi.porEntidad ? (kpi.id + '@' + (state.capRuta || '')) : kpi.id; }
@@ -1249,6 +1249,26 @@ function renderCaptura(){
         '<div class="cap-na">⚙ KPI <strong>derivado</strong> — no se captura. Se calcula automáticamente ('+aggDe(kpi)+') a partir de: <strong>'+fuentes+'</strong>.</div></div>';
       return;
     }
+    var bloqueadoAuto = !!kpi.cargaAuto && !(state.isAdmin && state.capEditAuto); /* [EBG 2026-11-26] */
+    if (kpi.cargaAuto){
+      var dAuto = (state.data[periodo]||{})[slotDe(kpi)] || null;
+      var regAuto = dAuto ? (dAuto.registro || '—') : null;
+      html += '<div class="cap-kpi"><h4>'+kpi.nombre+' <span class="cap-pill">'+pillTxt+'</span></h4>' +
+        '<div class="formula">'+kpi.formula+'</div>' +
+        (bloqueadoAuto
+          ? '<div class="cap-na" style="margin-bottom:8px;">🔒 <strong>Carga automática '+kpi.cargaAuto+' · no editable.</strong> ' +
+              (dAuto ? 'Dato cargado por: <strong>'+regAuto+'</strong>.' : 'Aún no hay dato cargado para este periodo y '+entLabel(entLeaf())+'.') +
+              (state.isAdmin ? ' <button class="btn btn-secondary" style="padding:2px 8px;font-size:11px;margin-left:6px;" onclick="capDesbloquearAuto()">Corregir (admin)</button>' : '') + '</div>'
+          : '<div class="cap-mode edit" style="margin-bottom:8px;">⚠ <strong>Corrección manual de un dato automático (admin).</strong> Sobrescribe lo cargado por '+kpi.cargaAuto+' y queda registrado en '+M365.listaBitacora+'. <button class="btn btn-secondary" style="padding:2px 8px;font-size:11px;margin-left:6px;" onclick="capBloquearAuto()">Cancelar corrección</button></div>') +
+        '<div class="cap-fields">' +
+        kpi.campos.map(function(c){
+          var v = ((dAuto||{}).valores||{})[c.id];
+          return '<div class="cap-field"><label>'+c.label+'</label>' +
+            '<input type="number" step="any" id="cap-'+kpi.id+'-'+c.id+'" value="'+(v != null ? v : '')+'"'+(bloqueadoAuto?' disabled':'')+'></div>';
+        }).join('') +
+        '</div><div class="cap-result" id="result-'+kpi.id+'"></div></div>';
+      return;
+    }
     var nota = (esDerivado(kpi) && kpi.capturaFallback)
       ? '<div style="font-size:10.5px;color:var(--muted);margin-bottom:8px;">Sin captura semanal por ruta en este periodo: se permite captura directa de cierre. Si después existe captura semanal, la derivación prevalece.</div>' : '';
     var slot = slotDe(kpi);
@@ -1264,12 +1284,13 @@ function renderCaptura(){
       '</div><div class="cap-result" id="result-'+kpi.id+'"></div></div>';
   });
 
+  var hayEditable = kpisCad.some(function(k){ return capturableEn(k, periodo) && (!k.cargaAuto || (state.isAdmin && state.capEditAuto)); }); /* [EBG 2026-11-26] */
   html += '<div class="cap-actions">' +
-    '<button class="btn btn-secondary" id="btn-cap-cancel">Cancelar</button>' +
-    '<button class="btn btn-primary" id="btn-cap-save">Guardar registro</button>' +
+    '<button class="btn btn-secondary" id="btn-cap-cancel">'+(hayEditable?'Cancelar':'Volver al panel')+'</button>' +
+    (hayEditable ? '<button class="btn btn-primary" id="btn-cap-save">Guardar registro</button>' : '<span style="font-size:11px;color:var(--muted);align-self:center;">Nada que capturar en esta cadencia: los datos llegan por carga automática o se calculan.</span>') +
     '</div></div>';
   document.getElementById('tab-captura').innerHTML = html;
-  document.getElementById('btn-cap-save').onclick = handleSaveCaptura;
+  var _bs = document.getElementById('btn-cap-save'); if (_bs) _bs.onclick = handleSaveCaptura; /* [EBG 2026-11-26] */
   document.getElementById('btn-cap-cancel').onclick = function(){ switchTab('panel'); };
   kpisCad.forEach(function(kpi){ if (capturableEn(kpi, periodo)) updateCalcResult(kpi); });
   document.querySelectorAll('#tab-captura input[type=number]').forEach(function(inp){
@@ -1277,6 +1298,9 @@ function renderCaptura(){
   });
 }
 
+/* [EBG 2026-11-26] desbloqueo de corrección manual de datos de carga automática (solo admin, por pantalla) */
+function capDesbloquearAuto(){ if (!state.isAdmin){ showToast('Acción reservada al administrador', 'error'); return; } state.capEditAuto = true; renderCaptura(); }
+function capBloquearAuto(){ state.capEditAuto = false; renderCaptura(); }
 function readCalcValues(kpi){
   var v = {};
   (kpi.campos||[]).forEach(function(c){
@@ -1302,12 +1326,18 @@ function handleSaveCaptura(){
   var nuevos = {};
   KPIS.forEach(function(kpi){
     if (kpi.cadencia !== cad || !capturableEn(kpi, periodo)) return;
+    if (kpi.cargaAuto && !(state.isAdmin && state.capEditAuto)) return; /* [EBG 2026-11-26] carga automática: no se guarda */
     var v = readCalcValues(kpi);
     if (Object.keys(v).length > 0) nuevos[slotDe(kpi)] = v;
   });
   if (Object.keys(nuevos).length === 0) { showToast('No hay valores para guardar', 'error'); return; }
   var ctx = tardia ? 'Entrega TARDÍA — explica la razón del retraso o backfill.' : 'Captura del periodo — describe contexto, supuestos o decisiones.';
-  showJustifModal(ctx, function(justif){
+  var autos = KPIS.filter(function(k){ return k.cargaAuto && nuevos[slotDe(k)]; }); /* [EBG 2026-11-26] */
+  showJustifModal(ctx, async function(justif){
+    if (autos.length){
+      try { await adminLog('Corrección de carga automática', periodo + ' · ' + autos.map(function(k){ return slotDe(k); }).join(', ') + ' · ' + recorta(justif, 120)); }
+      catch(e){ showToast('No se guardó: la corrección de un dato automático requiere registro en ' + M365.listaBitacora + ' (' + e.message + ')', 'error'); return; }
+    }
     if (!state.data[periodo]) state.data[periodo] = {};
     Object.keys(nuevos).forEach(function(slot){
       var ant = state.data[periodo][slot] || null;
@@ -1317,6 +1347,7 @@ function handleSaveCaptura(){
       logBitacora({ accion:ant?'edit':'create', periodo:periodo, kpi:slot, anterior:ant?ant.valores:null, nuevo:nuevos[slot], justificacion:justif, entregaTardia:tardia });
     });
     saveState();
+    state.capEditAuto = false; /* [EBG 2026-11-26] */
     syncPushPeriodo(periodo, Object.keys(nuevos));
     showToast(tardia ? '⏱ Registro guardado (tardía)' : '✓ Registro guardado', tardia ? 'error' : 'success');
     renderPanel(); switchTab('panel');
