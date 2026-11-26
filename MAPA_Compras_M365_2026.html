@@ -1127,7 +1127,11 @@ function capPerHoy(){ var cad = capCadActual(); state.capPer[cad] = periodoCerra
 function setCapRuta(r){ state.capRuta = r; renderCaptura(); }
 /* Derivable en el periodo = ya existe captura de nivel inferior → bloquear captura directa */
 function derivableEn(kpi, periodo){ return esDerivado(kpi) && valorDerivado(kpi, periodo) !== null; }
+/* [EBG 2026-11-17] Captura manual bloqueada: estos KPIs los carga el flujo FOR-PLL-004 (mismo criterio que Almacén, decisión LECG 2026-10-27) */
+var CAPTURA_AUTO = { eficacia_compras:true, efectividad_requisicion:true };
+function esCapturaAuto(kpi){ return !!CAPTURA_AUTO[kpi.id]; }
 function capturableEn(kpi, periodo){
+  if (esCapturaAuto(kpi)) return false; /* [EBG 2026-11-17] */
   if (!kpi.activo || kpi.entidadDerivada || esCruzado(kpi)) return false;
   if (kpi.porEntidad) return true;
   if (esDerivado(kpi)) return !!kpi.capturaFallback && !derivableEn(kpi, periodo);
@@ -1168,6 +1172,15 @@ function renderCaptura(){
 
   kpisCad.forEach(function(kpi){
     var pillTxt = 'Capturando: ' + labelPeriodo(periodo) + (kpi.porEntidad ? ' · '+entLabel(entLeaf())+' '+state.capRuta : '');
+    if (esCapturaAuto(kpi)){ /* [EBG 2026-11-17] */
+      var regAuto = (state.data[periodo]||{})[kpi.id];
+      html += '<div class="cap-kpi"><h4>'+kpi.nombre+' <span class="cap-pill">Carga automática: '+periodo+'</span></h4>' +
+        '<div class="formula">'+kpi.formula+'</div>' +
+        '<div class="cap-na">🔒 <strong>Captura manual bloqueada</strong> — este KPI lo registra el flujo de Power Automate desde el Excel FOR-PLL-004 (seguimiento a requisiciones y órdenes de compra). ' +
+        (regAuto && regAuto.valores && Object.keys(regAuto.valores).length ? 'Valor cargado para '+labelPeriodo(periodo)+': <strong>'+fmtVal(kpi, kpi.calcular(regAuto.valores))+'</strong>. ' : 'Aún no hay carga para '+labelPeriodo(periodo)+'. ') +
+        'Para corregir un dato, corrígelo en el Excel antes del lunes 09:00.</div></div>';
+      return;
+    }
     if (kpi.entidadDerivada){
       html += '<div class="cap-kpi"><h4>'+kpi.nombre+' <span class="cap-pill">Se calcula: '+periodo+'</span></h4>' +
         '<div class="cap-na">⚙ KPI <strong>derivado por entidad</strong> — no se captura. Se agrega automáticamente de las rutas de cada cobrador ('+(kpiById(kpi.entidadDerivada.src)||{}).nombre+').</div></div>';
@@ -1195,12 +1208,13 @@ function renderCaptura(){
       '</div><div class="cap-result" id="result-'+kpi.id+'"></div></div>';
   });
 
+  var _sinCaptura = kpisCad.every(function(k){ return !capturableEn(k, periodo); }); /* [EBG 2026-11-17] sin KPIs capturables: no se muestra Guardar */
   html += '<div class="cap-actions">' +
-    '<button class="btn btn-secondary" id="btn-cap-cancel">Cancelar</button>' +
-    '<button class="btn btn-primary" id="btn-cap-save">Guardar registro</button>' +
+    '<button class="btn btn-secondary" id="btn-cap-cancel">'+(_sinCaptura ? 'Volver al Panel' : 'Cancelar')+'</button>' +
+    (_sinCaptura ? '' : '<button class="btn btn-primary" id="btn-cap-save">Guardar registro</button>') +
     '</div></div>';
   document.getElementById('tab-captura').innerHTML = html;
-  document.getElementById('btn-cap-save').onclick = handleSaveCaptura;
+  var _bs = document.getElementById('btn-cap-save'); if (_bs) _bs.onclick = handleSaveCaptura; /* [EBG 2026-11-17] */
   document.getElementById('btn-cap-cancel').onclick = function(){ switchTab('panel'); };
   kpisCad.forEach(function(kpi){ if (capturableEn(kpi, periodo)) updateCalcResult(kpi); });
   document.querySelectorAll('#tab-captura input[type=number]').forEach(function(inp){
