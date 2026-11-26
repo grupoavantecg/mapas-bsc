@@ -2008,7 +2008,7 @@ function escHtml(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, funct
 /* Panel BSC · etiquetas de valor en los puntos de las gráficas (solicitado por LECG · 2026-10-27) */
 (function(){
   if (typeof Chart === 'undefined') return;
-  Chart.defaults.layout.padding = {top:18, right:12, left:4, bottom:0};
+  Chart.defaults.layout.padding = {top:18, right:44, left:4, bottom:0}; /* [EBG 2026-11-26] right 12→44: la etiqueta del último punto ($) ya no se corta */
   Chart.register({
     id:'panelBscEtiquetas',
     afterDatasetsDraw:function(chart){
